@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pick a Colour · Matthew 19:14</title>
+<link rel="icon" href="data:,">
+
+<!--
+  =====================================================================
+   PICK A COLOUR  —  Matthew 19:14 children's ministry game
+   One single file. No internet needed. Open it by double-clicking.
+  =====================================================================
+
+   QUICK GUIDE: WHERE TO CHANGE THINGS
+   (Use Ctrl+F in your editor and search for the words in "quotes")
+
+   1. THE BIBLE VERSES ........ search "THE BIBLE VERSES"
+        Change English and Tamil verses, their order, or add more.
+   2. COLOURS ................. search "THE COLOURS"
+        Colour names, Tamil names, and the exact shade of each colour.
+   3. WORDS ON THE SCREENS .... search "EDIT WORDS" (there are a few, one
+        for each screen: header, buttons, memory-verse page, volume page)
+   4. LOOK AND FEEL ........... the part between <style> and </style>
+        (starts with the :root line — the main colours are listed there)
+
+   HOW THE GAME FLOWS
+     Setup screen  ->  Board (press SPIN)  ->  a colour is revealed with
+     a verse  ->  back to the board  ->  ... repeat until all colours are
+     open  ->  FINISH  ->  Volume page (tap Space fast!)  ->  Memory verse.
+
+   IMPORTANT RULES WHEN EDITING
+     * Only change the words/numbers. Do NOT delete quotes ' ' or commas.
+     * After editing, save the file and press F5 in the browser to see it.
+     * If the game ever shows a blank page, you probably removed a quote,
+       comma or bracket by accident. Press Ctrl+Z to undo and try again.
+  =====================================================================
+-->
+<style>
+/* =====================  LOOK AND FEEL (CSS)  =====================
+   This whole block controls colours, sizes and animations.
+   You do not need to touch it to change verses or colours.
+   -----------------------------------------------------------------
+   MAIN COLOURS used everywhere (change the # codes to restyle):
+     --sea   = sea blue (borders, outlines)
+     --ink   = dark navy (main text)
+     --ink2  = softer navy (small text)
+     --amber = gold-orange (spin glow, highlights)
+     --amberd= dark gold (button edges)
+     --hot   = orange (the word "Hope", "Matthew 19:14")
+   Sizes use "vmin" (a % of the screen's smaller side) so everything
+   scales to any projector or laptop screen.
+   ================================================================= */
+:root{--sea:#0284C7;--ink:#0B1530;--ink2:#334155;--amber:#F59E0B;--amberd:#B45309;--hot:#EA580C}
+/* Basic reset: hides all scrollbars so nothing ever scrolls. */
+*{box-sizing:border-box;scrollbar-width:none}
+*::-webkit-scrollbar{display:none}
+/* Page basics: no scrolling, navy text, and a font that also supports Tamil (Nirmala UI). */
+html,body{margin:0;height:100%;overflow:hidden;text-wrap:balance;background:#EAF6FF;color:var(--ink);font-family:"Segoe UI","Nirmala UI",system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+button:focus-visible,input:focus-visible{outline:.5vmin solid var(--ink);outline-offset:.3vmin}
+/* "tm" = Tamil text. Tamil letters are taller, so they get a little more line spacing. */
+.tm{font-size:1.08em;line-height:1.5;font-weight:700}
+
+/* ---------- bright background: sunrise over the sea ---------- */
+/* The sky: soft blue to warm gold, like a sunrise. Clouds and waves are added by the makeSky() function in the code. */
+#sky{position:fixed;inset:0;z-index:0;overflow:hidden;background:
+  radial-gradient(70% 45% at 50% 108%,rgba(253,224,71,.75),rgba(253,224,71,0) 70%),
+  radial-gradient(40% 30% at 12% 8%,rgba(255,255,255,.7),transparent 70%),
+  linear-gradient(180deg,#9ED8FF 0%,#C9ECFF 38%,#FFF4CF 78%,#FFE7A8 100%)}
+.cloud{position:absolute;left:var(--x);top:var(--y);width:var(--w);height:calc(var(--w) * .22);background:#fff;border-radius:99px;opacity:.9;animation:cdrift var(--d) linear infinite;animation-delay:var(--dl)}
+.cloud::before,.cloud::after{content:"";position:absolute;background:#fff;border-radius:50%}
+.cloud::before{width:42%;height:170%;left:14%;top:-80%}
+.cloud::after{width:32%;height:135%;left:50%;top:-55%}
+@keyframes cdrift{from{transform:translateX(-45vw)}to{transform:translateX(110vw)}}
+.seabg{position:absolute;left:0;right:0;bottom:0;height:15vh;overflow:hidden}
+.seabg svg{position:absolute;left:0;bottom:0;width:200%;height:100%}
+/* #app is where each screen is drawn. #fx is the confetti layer on top of it. */
+#app{position:fixed;inset:0;z-index:1}
+#fx{position:fixed;inset:0;z-index:40;pointer-events:none;width:100%;height:100%}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column}
+
+/* ---------- shared bits ---------- */
+/* Shared pieces: round label ("pill") and buttons ("btn"). */
+.pill{display:inline-flex;align-items:center;gap:1vmin;padding:.5vmin 2.4vmin;border-radius:99px;background:#fff;color:var(--ink);border:.4vmin solid var(--sea);box-shadow:0 .5vmin 1.5vmin rgba(11,21,48,.12);font-size:max(32px,3.2vmin);font-weight:800;white-space:nowrap}
+.pill.dk{background:rgba(11,21,48,.9);color:#fff;border-color:rgba(255,255,255,.5)}
+.btns{display:flex;gap:2vmin;flex-wrap:wrap;justify-content:center}
+.btn{padding:1.3vmin 3.2vmin;border-radius:99px;font-weight:800;font-size:max(22px,2.9vmin);background:#fff;color:var(--ink);border:.4vmin solid var(--ink);box-shadow:0 .5vmin 0 rgba(11,21,48,.25);transition:transform .12s}
+.btn:hover{transform:translateY(-.3vmin)}
+.btn:active{transform:translateY(.3vmin);box-shadow:none}
+.btn.pri{background:var(--ink);color:#FDE68A;border-color:var(--ink)}
+.btn.gold{background:linear-gradient(180deg,#FDE68A,#FBBF24 55%,#F59E0B);color:var(--ink);border-color:var(--amberd)}
+.btn[disabled]{opacity:.45;cursor:not-allowed;transform:none}
+.tw .outl{-webkit-text-stroke:.055em rgba(11,21,48,.6);paint-order:stroke fill;text-shadow:0 .04em .08em rgba(11,21,48,.4)}
+@keyframes rise{from{transform:translateY(4vmin);opacity:0}to{transform:none;opacity:1}}
+@keyframes popin{from{transform:scale(0) rotate(-60deg);opacity:0}to{transform:none;opacity:1}}
+
+/* ---------- board ---------- */
+/* The board: header line, the colour circles, and the bottom strip with the SPIN button. */
+.board{padding:3.4vmin 3vw 2vmin;gap:1.4vmin}
+.board::before{content:"";position:absolute;left:0;right:0;top:0;height:1.4vmin;background:linear-gradient(90deg,#0369A1,#0EA5E9 30%,#7DD3FC 55%,#FDE68A 78%,#FBBF24)}
+/* "wm" = watermark: the faint anchor drawn behind the circles. */
+.wm{position:absolute;left:50%;top:50%;width:68vmin;height:68vmin;transform:translate(-50%,-50%);opacity:.07;pointer-events:none}
+.wm svg{width:100%;height:100%}
+.hdr{display:flex;align-items:center;gap:2vmin;min-height:9vmin;position:relative}
+.hdr h1{flex:1;min-width:0;margin:0;font-size:max(32px,3.4vmin);font-weight:800;line-height:1.1;color:var(--ink)}
+.hdr h1 b{color:var(--hot)}
+.hdr h1.tm{line-height:1.3}
+/* The circles. --gap is the space between circles; --sz is the circle size (it shrinks to fit 5, 8, 10 colours etc.). */
+.grid{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;--gap:4vmin;
+  --sz:min(calc((100vw - 8vw - (var(--cols) - 1)*var(--gap))/var(--cols)),calc((100vh - 36vh - (var(--rows) - 1)*var(--gap))/var(--rows)),40vmin)}
+.grow{display:flex;justify-content:center;gap:var(--gap);margin-top:var(--gap)}
+.grow:first-child{margin-top:0}
+/* One circle. It flips (front = "?", back = the colour) when it is revealed. */
+.card{width:var(--sz);height:var(--sz);flex:none;container-type:inline-size;transition:transform .08s;position:relative}
+.bob{width:100%;height:100%;perspective:900px}
+.open .bob{animation:bob 4.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.1vmin)}}
+.inner{width:100%;height:100%;position:relative;transform-style:preserve-3d}
+.done .inner{transform:rotateY(180deg)}
+.just .inner{animation:flip 1.1s cubic-bezier(.3,1.35,.5,1)}
+@keyframes flip{from{transform:rotateY(0)}to{transform:rotateY(180deg)}}
+.face{position:absolute;inset:0;border-radius:50%;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center}
+/* Front of a circle (not yet revealed): white with a sea-blue ring and a "?". */
+.front{border:max(7px,1.3vmin) solid transparent;background:linear-gradient(#fff,#fff) padding-box,linear-gradient(135deg,#0369A1,#0EA5E9 55%,#38BDF8) border-box;box-shadow:0 1vmin 3vmin rgba(11,21,48,.22)}
+.front .q{font-size:52cqw;font-weight:900;line-height:1;background:linear-gradient(135deg,#0369A1,#0EA5E9 60%,#14B8A6);-webkit-background-clip:text;background-clip:text;color:transparent;animation:wob 3.6s ease-in-out infinite;animation-delay:calc(var(--i)*-.4s)}
+@keyframes wob{0%,100%{transform:rotate(-5deg) scale(1)}50%{transform:rotate(5deg) scale(1.08)}}
+/* Back of a circle (revealed): filled with the colour. The colour comes from the COLOURS list in the code. */
+.back{transform:rotateY(180deg);background:var(--c);color:var(--t);border:max(6px,1.1vmin) solid rgba(255,255,255,.95);box-shadow:0 1vmin 3vmin rgba(11,21,48,.28)}
+.card[data-rim] .back{border-color:var(--rim)}
+.back .nm{font-size:max(32px,13.5cqw);font-weight:900;text-transform:uppercase;letter-spacing:.02em;line-height:1.05}
+.back .nm.tmn{font-size:max(32px,12.5cqw);text-transform:none;letter-spacing:0;line-height:1.3}
+.badge{position:absolute;top:5%;right:5%;width:17cqw;height:17cqw;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-weight:900;font-size:12cqw;border:.6cqw solid #fff}
+.badge svg{width:70%;height:70%}
+/* While spinning: the glowing circle that jumps around, then the one that "lands". */
+.card.hl{transform:scale(1.09);z-index:3}
+.card.hl .front{box-shadow:0 0 0 1.1vmin var(--amber),0 0 6vmin 2vmin rgba(245,158,11,.7)}
+.card.land{animation:landp .75s ease-out both;z-index:4}
+@keyframes landp{0%{transform:scale(1.09)}40%{transform:scale(1.32)}100%{transform:scale(1.2)}}
+.card.land .front{box-shadow:0 0 0 1.4vmin #fff,0 0 0 2.6vmin var(--amber),0 0 10vmin 4vmin rgba(245,158,11,.85)}
+.card.wig{animation:wig .5s}
+@keyframes wig{0%,100%{transform:rotate(0)}20%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}80%{transform:rotate(-3deg)}}
+.intro .card{animation:popin .7s cubic-bezier(.3,1.5,.5,1) backwards;animation-delay:calc(var(--i)*.07s)}
+/* Bottom strip of the board: names of colours already picked ("chips") and the SPIN button. */
+.strip{display:grid;grid-template-columns:1fr auto;align-items:center;gap:3vmin;min-height:13vmin;position:relative}
+.chips{display:flex;flex-wrap:wrap;gap:1.1vmin;justify-content:flex-start;max-height:14vmin;overflow:hidden}
+.chip{display:inline-flex;align-items:center;gap:.8vmin;padding:.3vmin 2vmin;border-radius:99px;background:var(--c);color:var(--t);border:.4vmin solid #fff;box-shadow:0 .4vmin 1.2vmin rgba(11,21,48,.25);font-size:max(24px,2.7vmin);font-weight:800;animation:popin .5s cubic-bezier(.3,1.5,.5,1) both}
+.chip.rim{border-color:var(--rim)}
+.spin{display:flex;align-items:center;gap:1.4vmin;padding:1.6vmin 5.5vmin;border-radius:99px;background:linear-gradient(180deg,#FDE68A,#FBBF24 55%,#F59E0B);color:var(--ink);border:.4vmin solid var(--amberd);font-weight:900;font-size:max(40px,6vmin);letter-spacing:.06em;box-shadow:0 1vmin 0 var(--amberd),0 1.4vmin 4vmin rgba(245,158,11,.5);animation:pulse 1.8s ease-in-out infinite}
+.spin:active{transform:translateY(.6vmin);box-shadow:0 .4vmin 0 var(--amberd)}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.spinning .spin{opacity:.55;pointer-events:none;animation:none}
+
+/* ---------- reveal ---------- */
+/* The full-screen colour page that shows after a spin: big colour name + the verse. */
+.reveal{align-items:center;justify-content:space-between;background:var(--c);color:var(--t);padding:2.4vmin 4vw;text-align:center;overflow:hidden}
+.reveal.enter{animation:bloom .8s cubic-bezier(.2,.8,.2,1) both}
+@keyframes bloom{from{clip-path:circle(0 at var(--ox,50%) var(--oy,50%))}to{clip-path:circle(150vmax at var(--ox,50%) var(--oy,50%))}}
+.reveal.hasrim{box-shadow:inset 0 0 0 1.4vmin var(--rim)}
+.rv-pat{position:absolute;inset:0;background-image:var(--pat);background-size:13vmin;opacity:.14;pointer-events:none}
+.rv-top{width:100%;display:flex;justify-content:space-between;align-items:center;position:relative}
+.rv-mid{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.8vmin;position:relative}
+.rv-name{margin:0;font-size:max(120px,19vmin);line-height:.95;font-weight:900;letter-spacing:.03em;text-transform:uppercase}
+.rv-name.tmn{font-size:max(120px,16vmin);letter-spacing:0;line-height:1.3;text-transform:none}
+.enter .rv-name{animation:slam .75s cubic-bezier(.2,1.6,.4,1) .35s both}
+@keyframes slam{from{transform:scale(.2);opacity:0}to{transform:none;opacity:1}}
+/* The dark verse box on the colour page. Change font-size here to make the verse bigger or smaller. */
+.rv-info{position:relative;width:min(94vw,150vmin);padding:2vmin 4vmin;background:rgba(11,21,48,.92);color:#fff;border-radius:3.5vmin;text-align:center;margin:1.2vmin 0}
+.enter .rv-info{animation:rise .6s ease-out 1.1s both}
+.rv-info .vs{font-size:max(34px,6vmin);font-weight:800;color:#fff;margin:0;line-height:1.25}
+.rv-info .vs.tm{line-height:1.5}
+.rv-info .vr{font-size:max(24px,3.4vmin);font-weight:800;color:#FDE68A;margin-top:.8vmin}
+.rv-btns{position:relative;display:flex;flex-direction:column;align-items:center;gap:1vmin}
+
+/* ---------- theme pages ---------- */
+.mem{align-items:center;overflow:hidden}
+/* Slowly turning golden rays behind the picture. */
+.rays{position:absolute;left:50%;top:44%;width:200vmax;height:200vmax;margin:-100vmax 0 0 -100vmax;background:repeating-conic-gradient(rgba(251,191,36,.26) 0 7.5deg,transparent 7.5deg 15deg);-webkit-mask-image:radial-gradient(circle closest-side,#000 3%,transparent 16%);mask-image:radial-gradient(circle closest-side,#000 3%,transparent 16%);animation:spinr 80s linear infinite;pointer-events:none}
+@keyframes spinr{to{transform:rotate(360deg)}}
+/* The picture area (SVG drawings) and the moving sea at the bottom. */
+.sc-art{position:relative;flex:1;min-height:0;width:100%;z-index:2;filter:drop-shadow(0 1vmin 2vmin rgba(11,21,48,.18))}
+.sway{animation:sway 5s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.bobart{animation:bobart 5s ease-in-out infinite}
+@keyframes bobart{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.2vmin)}}
+.sea{position:absolute;left:0;right:0;bottom:0;height:26vh;z-index:3;pointer-events:none;overflow:hidden}
+.sea svg{position:absolute;left:0;bottom:0;width:200%;height:100%}
+.w1{animation:wave 16s linear infinite}
+.w2{animation:wave 10s linear infinite reverse;bottom:-2vh!important}
+@keyframes wave{to{transform:translateX(-50%)}}
+/* The memory-verse page (the last page): verse on the left, hands + anchor picture on the right. */
+.mem{display:grid;grid-template-columns:1.1fr 1fr;gap:3vw;padding:4vmin 5vw 14vh}
+.mem-t{position:relative;z-index:4;display:flex;flex-direction:column;gap:2vmin;align-items:flex-start}
+.mem-l{font-size:max(24px,3.2vmin);font-weight:800;color:var(--ink);background:#fff;border:.4vmin solid var(--sea);border-radius:99px;padding:.4vmin 2.4vmin;box-shadow:0 .5vmin 1.5vmin rgba(11,21,48,.12);animation:rise .8s ease-out both}
+/* Memory-verse text size. */
+.mem-v{margin:0;font-size:max(50px,9.5vmin);font-weight:900;line-height:1.12;color:var(--ink);animation:rise .9s ease-out .3s both}
+.mem-v.tm{font-size:max(46px,7.2vmin);line-height:1.4}
+.mem-v b{color:var(--hot)}
+.mem-r{font-size:max(28px,4vmin);font-weight:800;color:var(--sea);animation:rise .9s ease-out .7s both}
+.mem-h{font-size:max(26px,3.4vmin);font-weight:700;color:var(--ink2);animation:rise .9s ease-out 1s both}
+.mem .sc-art{height:100%}
+.mem .btns{position:relative;z-index:5;justify-content:flex-start}
+
+/* ---------- volume page ---------- */
+/* The volume page: words on the left, the tall sound-meter card on the right. */
+.cheer{display:grid;grid-template-columns:1.2fr 1fr;align-items:stretch;gap:3vw;padding:3vmin 5vw;overflow:hidden}
+.ch-left{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1.2vmin;position:relative;min-width:0}
+.ch-title{font-size:max(30px,4vmin);font-weight:800;color:var(--ink2);margin-bottom:1.6vmin}
+/* The big words "Jesus is my" / "இயேசு என்". */
+.ch-word{font-size:max(64px,11.5vmin);font-weight:900;color:var(--hot);line-height:1.05;transform:scale(var(--k,1));transform-origin:center;text-shadow:0 .7vmin 0 rgba(180,83,9,.22);will-change:transform}
+.ch-word.tm{font-size:max(60px,11vmin);line-height:1.3}
+.ch-sub{font-size:max(26px,3.6vmin);font-weight:800;color:var(--sea);min-height:1.2em;margin-top:1.6vmin}
+.ch-card{background:#fff;border:.6vmin solid var(--sea);border-radius:4vmin;box-shadow:0 1.2vmin 3.5vmin rgba(11,21,48,.22);padding:2.4vmin 3vmin 2.8vmin;display:flex;flex-direction:column;min-height:0;position:relative}
+.ch-hd{display:flex;align-items:center;justify-content:space-between;gap:2vmin}
+.spk{width:12vmin;flex:none;color:var(--ink);overflow:visible}
+.spk .wv{fill:none;stroke:currentColor;stroke-width:5;stroke-linecap:round;opacity:.2;transition:opacity .15s}
+.spk.l1 .w1,.spk.l2 .w1,.spk.l3 .w1,.spk.l2 .w2,.spk.l3 .w2,.spk.l3 .w3{opacity:1}
+.pct{font-size:max(44px,8vmin);font-weight:900;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1}
+.mt{position:relative;flex:1;min-height:0;margin:3.6vmin 0 2.6vmin}
+.cl{position:absolute;left:50%;top:0;bottom:0;width:.5vmin;transform:translateX(-50%);background:rgba(11,21,48,.22);border-radius:9px}
+.clf{position:absolute;left:50%;bottom:0;width:1.1vmin;height:calc(var(--lv,0) * 1%);transform:translateX(-50%);background:var(--ink);border-radius:9px}
+.rws{position:absolute;inset:0;display:flex;flex-direction:column-reverse;justify-content:space-between}
+.rw{display:grid;grid-template-columns:1fr 1fr;column-gap:4vmin}
+/* One small dash of the sound meter. It lights up (.on) when the volume reaches it. */
+.d{height:max(4px,.62vmin);width:max(60px,10vmin);border-radius:99px;background:var(--sc);opacity:.16;transition:opacity .06s}
+.d.l{justify-self:end}
+.d.r{justify-self:start}
+.d.on{opacity:1;box-shadow:0 0 1vmin var(--sc)}
+/* The round white knob that slides up the meter. */
+.knob{position:absolute;left:50%;bottom:calc(var(--lv,0) * 1%);width:max(34px,5vmin);height:max(34px,5vmin);border-radius:50%;background:#fff;border:.7vmin solid var(--ink);transform:translate(-50%,50%);box-shadow:0 .6vmin 1.6vmin rgba(11,21,48,.35)}
+.cheer.done::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 35% 40%,rgba(253,224,71,.9),rgba(253,224,71,0) 65%);animation:flash 1.6s ease-out both;pointer-events:none}
+@keyframes flash{from{opacity:1}to{opacity:0}}
+.cheer.done .ch-word{animation:celeb 1.1s ease-in-out infinite}
+@keyframes celeb{0%,100%{transform:scale(1.06) rotate(-2deg)}50%{transform:scale(1.14) rotate(2deg)}}
+.cheer.done .ch-card{animation:glow .9s ease-in-out infinite}
+@keyframes glow{0%,100%{box-shadow:0 1.2vmin 3.5vmin rgba(11,21,48,.22)}50%{box-shadow:0 0 5vmin 1.6vmin rgba(251,191,36,.95)}}
+
+/* ---------- setup ---------- */
+/* Setup screen: colour tiles, options and the Start button. */
+.setup{align-items:stretch;font-size:max(18px,2.3vmin);overflow:hidden}
+.su{flex:1;min-height:0;overflow:hidden;width:min(1200px,96vw);margin:0 auto;padding:2.4vmin 0 2vmin;display:flex;flex-direction:column;gap:1.8vmin}
+.su-h{display:flex;align-items:center;gap:2vmin}
+.su-h h1{margin:0;font-size:max(32px,5.2vmin);color:var(--ink);line-height:1}
+.su-h p{margin:.6vmin 0 0;font-size:1.05em;color:var(--ink2);font-weight:600}
+.su-sec{display:flex;align-items:center;justify-content:space-between;gap:2vmin;flex-wrap:wrap}
+.su h3{margin:0;font-size:1.35em;color:var(--ink)}
+.su h3 span{color:var(--ink2);font-weight:600;font-size:.8em}
+.qp{display:flex;gap:1.2vmin}
+.qb{padding:.9vmin 2.4vmin;border-radius:99px;background:#fff;color:var(--ink);border:.35vmin solid var(--ink);font-weight:800;font-size:1em}
+.qb:hover{background:#FEF3C7}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(max(190px,21vmin),1fr));gap:1.6vmin}
+.tile{display:flex;align-items:center;gap:1.6vmin;padding:1vmin 1.8vmin;min-height:8.5vmin;border-radius:2.4vmin;background:#fff;border:.6vmin solid var(--ink);box-shadow:0 .8vmin 0 rgba(11,21,48,.28);text-align:left;font-weight:800;font-size:1.15em;color:var(--ink);transition:transform .1s}
+.tile:hover{transform:translateY(-.3vmin)}
+.tile .sw{width:max(44px,6.6vmin);height:max(44px,6.6vmin);border-radius:50%;border:.5vmin solid rgba(11,21,48,.2);flex:none}
+.tile .tn{flex:1}
+.tile:not(.on){background:rgba(255,255,255,.45);border:.4vmin dashed rgba(11,21,48,.3);box-shadow:none;color:rgba(11,21,48,.55)}
+.tile:not(.on) .sw{opacity:.55}
+.opts{display:flex;gap:1.6vmin;flex-wrap:wrap}
+.opt{display:flex;align-items:center;gap:1.4vmin;padding:1.2vmin 2.6vmin;border-radius:99px;font-weight:800;font-size:1.15em;background:rgba(255,255,255,.5);border:.4vmin dashed rgba(11,21,48,.3);color:rgba(11,21,48,.6)}
+.opt b{background:#fff;border-radius:99px;padding:.2vmin 1.4vmin;color:#64748B;font-size:.85em}
+.opt.on{background:#DCFCE7;border:.5vmin solid #16A34A;color:var(--ink)}
+.opt.on b{color:#15803D}
+.hint{margin:0;color:var(--ink2);font-weight:600}
+.su-foot{flex:none;display:flex;align-items:center;justify-content:space-between;gap:2vmin;padding:1.6vmin 3vw;background:rgba(255,255,255,.92);border-top:.4vmin solid var(--sea)}
+.su-msg{font-weight:800;color:var(--ink);font-size:1.1em}
+.su-act{display:flex;gap:2vmin}
+.su-act .btn{font-size:max(20px,2.7vmin);padding:1.4vmin 3.4vmin}
+.su-act .btn.gold{font-size:max(24px,3.2vmin);padding:1.6vmin 5vmin}
+
+/* ---------- overlays ---------- */
+/* Pop-up boxes (confirmation boxes and the help list) and the small message at the bottom (toast). */
+.ov{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(11,21,48,.55)}
+.box{background:#fff;color:var(--ink);border:.5vmin solid var(--sea);border-radius:3vmin;padding:3.4vmin 4vmin;max-width:min(94vw,120vmin);max-height:94vh;overflow:hidden;box-shadow:0 2vmin 8vmin rgba(11,21,48,.35)}
+.box h2{margin:0 0 1vmin;color:var(--ink);font-size:max(28px,4vmin)}
+.box p{margin:0 0 2.4vmin;font-size:max(20px,2.8vmin);color:var(--ink2);font-weight:600}
+.box .btn{font-size:max(20px,2.6vmin)}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:.7vmin 2.4vmin;font-size:max(17px,2.3vmin);margin-bottom:2vmin}
+.keys kbd{font:inherit;font-weight:800;background:#FEF3C7;border:.3vmin solid var(--amberd);border-radius:1vmin;padding:0 1vmin;color:var(--ink);justify-self:start;white-space:nowrap}
+#toast{position:fixed;left:50%;bottom:4vmin;transform:translateX(-50%) translateY(20px);opacity:0;z-index:70;padding:1vmin 3vmin;border-radius:99px;background:var(--ink);color:#fff;border:.3vmin solid #fff;font-size:max(22px,2.8vmin);font-weight:700;transition:.25s;pointer-events:none;white-space:nowrap}
+#toast.on{opacity:1;transform:translateX(-50%)}
+
+/* If a computer is set to "reduce motion", all animations are almost switched off. */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<!-- Invisible drawing instructions (colour gradients) used by the anchor and sun pictures. Not visible by itself. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<linearGradient id="ancG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#075985"/><stop offset=".45" stop-color="#0EA5E9"/><stop offset="1" stop-color="#0C4A6E"/></linearGradient>
+<radialGradient id="sunG"><stop offset="0" stop-color="#FEF9C3"/><stop offset=".55" stop-color="#FDE047"/><stop offset="1" stop-color="#FBBF24"/></radialGradient>
+</defs></svg>
+<!-- The empty boxes below are filled in by the code: sky background, the current screen, confetti, help list, pop-up boxes, small messages. -->
+<div id="sky"></div>
+<div id="app"></div>
+<canvas id="fx"></canvas>
+<div id="help"></div>
+<div id="modal"></div>
+<div id="toast" role="status"></div>
+
+<script>
+/* =====================  THE GAME CODE (JavaScript)  =====================
+   You only need to edit the DATA section just below:
+     - the verses  (search "THE BIBLE VERSES")
+     - the colours (search "THE COLOURS")
+   Everything after that is the game's engine. Please leave it alone
+   unless you know JavaScript.
+   ====================================================================== */
+(() => {
+'use strict';
+
+/* =====================================================================
+   DATA
+   ===================================================================== */
+// Internal constants (leave as they are): web-drawing address, and the colours navy / gold / white used below.
+const NS = 'http://www.w3.org/2000/svg';
+const NAVY = '#0B1530', GOLD = '#FBBF24', WHITE = '#FFFFFF';
+// Names the browser uses to remember the game if the page is refreshed. Leave as is.
+const KEY = 'pickcolour.v2', CFGKEY = 'pickcolour.cfg1';
+
+/* =====================================================================
+   THE COLOURS
+   ---------------------------------------------------------------------
+   Each line is one colour that can appear in the game:
+     id  : the English name shown on screen.
+     hex : the exact shade (a web colour code). Change it to change the shade.
+     t   : the text colour used on top of it. Use WHITE for dark colours
+           and NAVY for light colours so the name is always readable.
+     ta  : the Tamil name (shown when "Tamil only" is switched on).
+     rim : (optional) a coloured edge, used for White and Black so they
+           stand out from the background.
+   To rename a colour just edit the words inside the quotes.
+   You can have 2 to 10 colours in one game (chosen on the setup screen).
+   ===================================================================== */
+const COLORS = [
+  {id:'Red',   hex:'#EF4444', t:WHITE, ta:'சிவப்பு'},
+  {id:'Orange',hex:'#F97316', t:WHITE, ta:'ஆரஞ்சு'},
+  {id:'Yellow',hex:'#FACC15', t:NAVY,  ta:'மஞ்சள்'},
+  {id:'Green', hex:'#22C55E', t:WHITE, ta:'பச்சை'},
+  {id:'Blue',  hex:'#3B82F6', t:WHITE, ta:'நீலம்'},
+  {id:'Purple',hex:'#A855F7', t:WHITE, ta:'ஊதா'},
+  {id:'Pink',  hex:'#EC4899', t:WHITE, ta:'இளஞ்சிவப்பு'},
+  {id:'White', hex:'#F8FAFC', t:NAVY,  ta:'வெள்ளை', rim:'#94A3B8'},
+  {id:'Black', hex:'#111827', t:WHITE, ta:'கருப்பு', rim:GOLD},
+  {id:'Brown', hex:'#92400E', t:WHITE, ta:'பழுப்பு'},
+  {id:'Grey',  hex:'#9CA3AF', t:NAVY,  ta:'சாம்பல்'},
+  {id:'Maroon',hex:'#9F1239', t:WHITE, ta:'மெரூன்'}
+];
+// The 8 colours that are pre-selected when you press "Standard 8" on the setup screen. Use the id names from the list above.
+const DEFAULT8 = ['Red','Orange','Yellow','Green','Blue','Purple','Pink','White'];
+
+/* =====================================================================
+   ★★★  THE BIBLE VERSES — THIS IS THE PLACE TO CHANGE THEM  ★★★
+   =====================================================================
+
+   HOW THE VERSES ARE USED
+     • Every time a colour is revealed, the game shows the NEXT verse in
+       this list:  1st colour -> verse #1,  2nd colour -> verse #2, ...
+     • So the ORDER of the list is the order the kids will see them.
+     • Verse #2 in the list is ALSO the verse shown on the last page
+       (the "Our memory verse" page). Change verse #2 to change that page.
+     • You must have at least as many verses as the most colours you will
+       ever play with. The game allows up to 10 colours, so keep at least
+       10 verses here (there are exactly 10 now).
+
+   WHAT EACH PART MEANS (every verse has the same 4 parts)
+     t   : the ENGLISH verse text       (we use the NIV Bible)
+     r   : the ENGLISH reference        (for example 'John 8:12')
+     ta  : the TAMIL verse text         (we use the Tamil Easy-to-Read Version)
+     tr  : the TAMIL reference          (for example 'யோவான் 8:12')
+     Two extra optional parts, used only for the memory verse (#2):
+     hl  : one ENGLISH word to show in orange on the memory page
+     thl : one TAMIL word to show in orange on the memory page
+           (the word must appear exactly as written in the verse)
+
+   HOW TO CHANGE A VERSE  (step by step)
+     1. Find the verse you want to change below.
+     2. Replace ONLY the words between the quotes ' '.
+        Example:  t:'I am the light of the world.'
+        becomes   t:'The Lord is my shepherd.'
+     3. Change the reference (r) and the Tamil parts (ta, tr) to match.
+     4. Save the file, then press F5 in the browser.
+
+   HOW TO ADD A NEW VERSE
+     Copy a whole block that looks like this (from the { to the },):
+        {t:'...', r:'...',
+         ta:'...', tr:'...'},
+     paste it where you want it in the list, and change the words.
+     Every block except the LAST one must end with a comma  ,
+     The last block has NO comma after it.
+
+   THINGS THAT BREAK THE GAME (please avoid)
+     ✗ Do not use a straight apostrophe  '  inside a verse, because it
+       ends the text early. Use the curly one instead:  ’
+       Right:  'God’s love'      Wrong:  'God's love'
+     ✗ Do not delete a quote mark, a comma or a bracket.
+     ✗ Do not remove a verse so that fewer verses than colours remain.
+   ===================================================================== */
+const VERSES = [
+  // ---- Verse #1  (shown with the 1st colour revealed) ----
+  {t:'You have been my hope.', r:'Psalm 71:5',
+   ta:'நீரே என் நம்பிக்கை.', tr:'சங்கீதம் 71:5'},
+
+  // ---- Verse #2  (shown with the 2nd colour AND on the last "memory verse" page) ----
+  // hl = the English word shown in orange on the memory page; thl = the same for Tamil.
+  {t:'God is love.', r:'1 John 4:8', hl:'love',
+   ta:'தேவன் அன்பாயிருக்கிறார்.', tr:'1 யோவான் 4:8', thl:'அன்பாயிருக்கிறார்'},
+
+  // ---- Verse #3 ----
+  {t:'I am the light of the world.', r:'John 8:12',
+   ta:'நானே உலகத்துக்கு ஒளி.', tr:'யோவான் 8:12'},
+
+  // ---- Verse #4 ----
+  {t:'The Lord is my shepherd.', r:'Psalm 23:1',
+   ta:'கர்த்தர் என் மேய்ப்பர்.', tr:'சங்கீதம் 23:1'},
+
+  // ---- Verse #5 ----
+  {t:'The fear of the Lord is the beginning of wisdom.', r:'Proverbs 9:10',
+   ta:'கர்த்தரை மதிப்பதுதான் ஞானம் பெறுவதற்கான முதல் படியாகும்.', tr:'நீதிமொழிகள் 9:10'},
+
+  // ---- Verse #6  (the Tamil reference is deliberately kept in English: "Matthew 19:14" is the ministry's name) ----
+  {t:'Let the little children come to me.', r:'Matthew 19:14',
+   ta:'குழந்தைகளை என்னிடம் வரவிடுங்கள்.', tr:'Matthew 19:14'},
+
+  // ---- Verse #7 ----
+  {t:'This is the day the Lord has made.', r:'Psalm 118:24',
+   ta:'இந்நாள் கர்த்தர் செய்த நாள்.', tr:'சங்கீதம் 118:24'},
+
+  // ---- Verse #8 ----
+  {t:'Never will I leave you.', r:'Hebrews 13:5',
+   ta:'நான் உன்னை ஒருபோதும் கைவிடமாட்டேன்.', tr:'எபிரேயர் 13:5'},
+
+  // ---- Verse #9 ----
+  {t:'Trust in the Lord with all your heart.', r:'Proverbs 3:5',
+   ta:'கர்த்தரை முழுமையாக நம்பு.', tr:'நீதிமொழிகள் 3:5'},
+
+  // ---- Verse #10  (this is the LAST one, so it has no comma after the closing } ) ----
+  {t:'The Lord is good.', r:'Psalm 100:5',
+   ta:'கர்த்தர் நல்லவர்.', tr:'சங்கீதம் 100:5'}
+];
+
+/* ---------- inline art ---------- */
+/* ---------- PICTURES (drawn with code, no image files needed) ---------- */
+// The small tick shown on a revealed circle.
+const CHECK = '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+// The anchor picture is built from many small shapes (ring, bar, shank, arms, flukes, rope). Leave as is.
+// Detailed anchor, drawn in a 200 x 260 box (ring centre at 100,26).
+// Draws the 5 rope wraps around the anchor's shank.
+function ropeBands(){
+  let h = '';
+  for (let i = 0; i < 5; i++){ const y = 96 + i * 10;
+    h += `<path d="M85 ${y} L115 ${y + 7}" stroke="#06283D" stroke-width="8.6" fill="none"/><path d="M85 ${y} L115 ${y + 7}" stroke="#E0B25A" stroke-width="6" fill="none"/><path d="M85 ${y} L115 ${y + 7}" stroke="#9A6A1E" stroke-width="6" stroke-dasharray="2 5" fill="none"/>`; }
+  return h;
+}
+// The anchor drawing itself (shapes + colours). The blue shades come from the 'ancG' gradient defined near the top of the page.
+const ANCHOR_BODY = `
+<g stroke="#06283D" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M91 42 L109 42 L113 204 L87 204 Z" fill="url(#ancG)"/>
+  <path d="M16 158 C20 214 60 247 100 247 C140 247 180 214 184 158 L160 166 C154 196 130 220 100 220 C70 220 46 196 40 166 Z" fill="url(#ancG)"/>
+  <path d="M5 178 L28 122 L58 172 C42 180 24 182 5 178 Z" fill="url(#ancG)"/>
+  <path d="M195 178 L172 122 L142 172 C158 180 176 182 195 178 Z" fill="url(#ancG)"/>
+  <ellipse cx="100" cy="206" rx="21" ry="9.5" fill="url(#ancG)"/>
+  <rect x="48" y="60" width="104" height="13" rx="6.5" fill="url(#ancG)"/>
+  <circle cx="46" cy="66.5" r="9.5" fill="url(#ancG)"/><circle cx="154" cy="66.5" r="9.5" fill="url(#ancG)"/>
+  <circle cx="100" cy="26" r="15" fill="none" stroke="#06283D" stroke-width="12"/>
+  <circle cx="100" cy="26" r="15" fill="none" stroke="url(#ancG)" stroke-width="8"/>
+</g>
+<g fill="none" stroke="#fff" stroke-opacity=".32" stroke-width="3" stroke-linecap="round">
+  <path d="M96 50 L97 198"/><path d="M26 172 C36 212 66 236 100 237"/><path d="M174 172 C164 212 134 236 100 237" stroke-opacity=".15"/>
+  <path d="M52 63 L146 63"/>
+</g>
+<g fill="#BAE6FD"><circle cx="46" cy="66.5" r="2.8"/><circle cx="154" cy="66.5" r="2.8"/><circle cx="100" cy="206" r="2.8"/></g>
+${ropeBands()}
+<path d="M100 11 C58 -16 22 32 54 78 C70 100 84 90 90 118" stroke="#06283D" stroke-width="9.6" fill="none" stroke-linecap="round"/>
+<path d="M100 11 C58 -16 22 32 54 78 C70 100 84 90 90 118" stroke="#E0B25A" stroke-width="7" fill="none" stroke-linecap="round"/>
+<path d="M100 11 C58 -16 22 32 54 78 C70 100 84 90 90 118" stroke="#9A6A1E" stroke-width="7" stroke-dasharray="2 6" fill="none" stroke-linecap="round"/>`;
+// The anchor as a stand-alone picture: used as the faint watermark behind the board circles.
+const ANCHOR = `<svg viewBox="-10 -24 220 290" aria-hidden="true">${ANCHOR_BODY}</svg>`;
+// The two clasped hands ("monkey catch") drawing, used on the memory-verse page.
+const HANDS = '<svg viewBox="0 0 100 60" aria-hidden="true" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="23" width="62" height="14" rx="7" fill="#FCD34D" stroke="#0B1530" stroke-width="2.5"/><rect x="36" y="23" width="62" height="14" rx="7" fill="#F59E0B" stroke="#0B1530" stroke-width="2.5"/><ellipse cx="28" cy="15" rx="7" ry="4" fill="#F59E0B" stroke="#0B1530" stroke-width="2.5"/><rect x="17" y="16" width="22" height="30" rx="9" fill="#F59E0B" stroke="#0B1530" stroke-width="2.5"/><path d="M23.5 22V40M28 22V40M32.5 22V40" stroke="#0B1530" stroke-width="2" fill="none"/><ellipse cx="72" cy="15" rx="7" ry="4" fill="#FCD34D" stroke="#0B1530" stroke-width="2.5"/><rect x="61" y="16" width="22" height="30" rx="9" fill="#FCD34D" stroke="#0B1530" stroke-width="2.5"/><path d="M67.5 22V40M72 22V40M76.5 22V40" stroke="#0B1530" stroke-width="2" fill="none"/></svg>';
+// Same hands picture without its outer frame, so it can be placed inside another drawing.
+const HANDS_INNER = HANDS.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '');
+// The anchor positioned for use inside the memory-verse page picture.
+const ANCH = `<g transform="translate(-100 -26)">${ANCHOR_BODY}</g>`;
+
+// Builds the soft dotted pattern behind the big colour name on the reveal page (dots are in the text colour of that colour).
+function patCSS(c){
+  const svg = `<svg xmlns="${NS}" width="96" height="96" viewBox="0 0 48 48"><g fill="${c.t}" opacity=".9"><circle cx="12" cy="12" r="5"/><circle cx="36" cy="36" r="5"/></g></svg>`;
+  return `url('data:image/svg+xml;utf8,${encodeURIComponent(svg).replace(/'/g,'%27')}')`;
+}
+
+/* =====================================================================
+   UTILITIES
+   ===================================================================== */
+// Tiny helpers: $ finds an element on the page; colorOf finds a colour from the COLOURS list by name; RM = does this computer prefer reduced motion?
+const $ = s => document.querySelector(s);
+const colorOf = id => COLORS.find(c => c.id === id);
+const RM = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+// Picks a truly random whole number from 0 to n-1 (uses the browser's secure random generator, so the spin is fair).
+function rnd(n){
+  if (n <= 1) return 0;
+  try {
+    const lim = Math.floor(0x100000000 / n) * n, a = new Uint32Array(1);
+    let x;
+    do { crypto.getRandomValues(a); x = a[0]; } while (x >= lim);
+    return x % n;
+  } catch (e) { return Math.floor(Math.random() * n); }
+}
+// Shuffles a list into random order (used to mix up the circles at the start of each game).
+function shuffle(a){
+  for (let i = a.length - 1; i > 0; i--){ const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+// Shows a short message at the bottom of the screen for 2 seconds (for example "Undone").
+let toastT;
+function toast(m){
+  const t = $('#toast'); t.textContent = m; t.classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 1900);
+}
+
+/* =====================================================================
+   STATE
+   ===================================================================== */
+// S = everything the game remembers right now:
+//   cfg    : the choices made on the setup screen (colours, sound, Tamil)
+//   order  : the order of the circles on the board
+//   picks  : the colours already revealed, in order
+//   phase  : which screen we are on ('board', 'reveal', 'cheer' = volume page, 'finale' = memory verse)
+//   cur    : the colour currently being shown on the reveal page
+//   verseN : how many verses have been shown so far (decides the next verse)
+//   undo   : earlier copies of the game so U / the Back arrow can step back
+// S is saved in the browser after every step, so a refresh or accidental close does not lose the game.
+let S = null;                 // game state (persisted)
+let soundOn = true;
+// ui = temporary screen details that do NOT need saving (is a spin running, is a pop-up open, ...).
+const ui = {setup:false, draft:null, spinning:false, timers:[], rt:0, modal:null, help:false,
+            justPicked:null, boardIntro:true, ox:'50%', oy:'50%'};
+
+// The starting choices on a brand-new setup screen: the standard 8 colours, sound on, Tamil off.
+function defaultCfg(){ return {colors:DEFAULT8.slice(), sound:true, tamil:false}; }
+// Starts a fresh game: shuffles the circles, clears the picked list, sets the verse counter back to the first verse.
+function newGame(cfg){
+  return {v:1, phase:'board', cfg, order:shuffle(cfg.colors.slice()), picks:[],
+          cur:null, verseN:0, undo:[]};
+}
+// Save / load the game in the browser's memory (localStorage). Wrapped in try/catch so a browser that blocks it does not crash the game.
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function saveCfg(c){ try { localStorage.setItem(CFGKEY, JSON.stringify(c)); } catch (e) {} }
+// Safety check: only accept a saved game if it looks complete and correct (otherwise start fresh).
+function validate(o){
+  if (!o || o.v !== 1 || !o.cfg || !Array.isArray(o.order) || !Array.isArray(o.picks) || !Array.isArray(o.undo)) return false;
+  if (!o.order.length || !o.order.every(colorOf) || !o.picks.every(colorOf)) return false;
+  if (!['board','reveal','cheer','finale'].includes(o.phase)) return false;
+  if (o.phase === 'reveal' && !(o.cur && colorOf(o.cur.c))) return false;
+  return true;
+}
+function load(){
+  try { const r = localStorage.getItem(KEY); if (!r) return null; const o = JSON.parse(r); return validate(o) ? o : null; }
+  catch (e) { return null; }
+}
+function loadCfg(){
+  try { const r = localStorage.getItem(CFGKEY); if (!r) return null; const o = JSON.parse(r);
+        return (o && Array.isArray(o.colors) && o.colors.every(colorOf)) ? o : null; }
+  catch (e) { return null; }
+}
+
+// Small questions about the game: is this colour already picked? which circles are still closed? which round number are we on?
+const isPicked = c => S.picks.includes(c);
+const openList = () => S.order.filter(c => !isPicked(c));
+const roundNo = () => Math.min(S.order.length, S.picks.length + 1);
+
+// Remembers the game as it is now, so Undo can come back to it later (keeps the last 60 steps).
+function pushUndo(){
+  const {undo, ...rest} = S;
+  undo.push(JSON.stringify(rest));
+  if (undo.length > 60) undo.shift();
+}
+
+/* =====================================================================
+   AUDIO (Web Audio, synthesised — no files)
+   ===================================================================== */
+// All sounds are made by the computer on the spot (no sound files). 'unlock' is needed because browsers stay silent until the first click or key press.
+const sfx = (() => {
+  let ctx = null, master = null, bus = null, dr = null;
+  function unlock(){
+    try {
+      if (!ctx){
+        const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+        ctx = new C(); master = ctx.createGain(); master.gain.value = .8; master.connect(ctx.destination);
+      }
+      if (ctx.state === 'suspended') ctx.resume();
+    } catch (e) {}
+  }
+  const ok = () => ctx && soundOn;
+  function tone(f, t, d, type, v, f2, dest){
+    try {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+      if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v || .2, t + .012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g); g.connect(dest || master); o.start(t); o.stop(t + d + .03);
+    } catch (e) {}
+  }
+  const api = {
+    unlock,
+    // tick = short click (used while spinning and when tapping on the volume page).
+    // roll = the drum-roll build-up during a spin.   pop / chime / fanfare = reveal and celebration sounds.
+    // drone = the rising buzz while the volume page is being tapped.
+    tick(p){ if (ok()) tone(480 + p * 760, ctx.currentTime, .05, 'square', .05); },
+    roll(d){
+      if (!ok()) return; api.stopRoll();
+      try {
+        bus = ctx.createGain(); bus.connect(master);
+        const t0 = ctx.currentTime; let t = 0;
+        while (t < d){ const p = t / d; tone(85 + p * 70, t0 + t, .09, 'triangle', .1 + .26 * p, null, bus); t += Math.max(.035, .15 * (1 - p * .78)); }
+        tone(180, t0 + d, .5, 'sawtooth', .12, 60, bus);
+      } catch (e) {}
+    },
+    stopRoll(){ try { if (bus){ bus.gain.cancelScheduledValues(0); bus.gain.setValueAtTime(0, ctx.currentTime); bus.disconnect(); } } catch (e) {} bus = null; },
+    pop(){ if (ok()) tone(380, ctx.currentTime, .12, 'sine', .25, 900); },
+    drone(p){
+      if (!ok()) return;
+      try {
+        if (!dr){
+          const o = ctx.createOscillator(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+          o.type = 'sawtooth'; f.type = 'lowpass'; f.frequency.value = 900; g.gain.value = 0;
+          o.connect(f); f.connect(g); g.connect(master); o.start(); dr = {o, g};
+        }
+        const t = ctx.currentTime;
+        dr.o.frequency.setTargetAtTime(110 + p * 360, t, .05);
+        dr.g.gain.setTargetAtTime(.03 + p * .08, t, .05);
+      } catch (e) {}
+    },
+    droneFade(){ try { if (dr) dr.g.gain.setTargetAtTime(0, ctx.currentTime, .12); } catch (e) {} },
+    droneStop(){ try { if (dr){ const o = dr.o; dr.g.gain.setTargetAtTime(0, ctx.currentTime, .06); setTimeout(() => { try { o.stop(); } catch (e) {} }, 400); dr = null; } } catch (e) {} },
+    chime(){ if (!ok()) return; const t = ctx.currentTime; [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => tone(f, t + i * .09, .6, 'triangle', .2)); },
+    fanfare(){
+      if (!ok()) return; const t = ctx.currentTime;
+      [[523.25,0],[659.25,.14],[783.99,.28],[1046.5,.42],[783.99,.62],[1046.5,.74],[1318.5,.9],[1568,1.08]].forEach(([f, d]) => { tone(f, t + d, .55, 'triangle', .22); tone(f / 2, t + d, .55, 'sine', .12); });
+      for (let i = 0; i < 12; i++) tone(2000 + rnd(2500), t + 1.1 + i * .06, .15, 'sine', .05);
+    }
+  };
+  return api;
+})();
+
+/* =====================================================================
+   CONFETTI (canvas)
+   ===================================================================== */
+// Confetti: small coloured pieces drawn on a see-through layer over the page. burst = shoots up from a point; rain = falls from the top; clear = removes all.
+const fx = (() => {
+  const cv = $('#fx'), c = cv.getContext('2d');
+  let P = [], raf = 0, W = 0, H = 0, dpr = 1;
+  const cols = ['#EF4444','#F97316','#FACC15','#22C55E','#3B82F6','#A855F7','#EC4899','#14B8A6'];
+  function size(){ dpr = Math.min(2, window.devicePixelRatio || 1); W = cv.width = Math.round(innerWidth * dpr); H = cv.height = Math.round(innerHeight * dpr); }
+  addEventListener('resize', size); size();
+  function add(p){ if (P.length > 520) P.shift(); P.push(p); if (!raf) raf = requestAnimationFrame(loop); }
+  function mk(x, y, vx, vy){
+    return {x, y, vx, vy, r:Math.random() * 6.28, vr:(Math.random() - .5) * .35, w:(9 + Math.random() * 13) * dpr,
+            c:cols[rnd(cols.length)], k:rnd(3)};
+  }
+  function burst(n, fx_, fy_, spread){
+    if (RM.matches) return;
+    for (let i = 0; i < n; i++){
+      const a = -Math.PI / 2 + (Math.random() - .5) * Math.PI * (spread || 1), s = (9 + Math.random() * 17) * dpr;
+      add(mk(fx_ * W, fy_ * H, Math.cos(a) * s, Math.sin(a) * s));
+    }
+  }
+  function rain(n){
+    if (RM.matches) return;
+    for (let i = 0; i < n; i++) add(mk(Math.random() * W, -20 * dpr, (Math.random() - .5) * 4 * dpr, (2 + Math.random() * 5) * dpr));
+  }
+  function loop(){
+    c.clearRect(0, 0, W, H);
+    P = P.filter(p => p.y < H + 60 * dpr);
+    for (const p of P){
+      p.vy += .38 * dpr; p.vx *= .992; p.vy *= .992; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      c.fillStyle = p.c;
+      if (p.k === 1){ c.beginPath(); c.arc(p.x, p.y, p.w / 3, 0, 6.28); c.fill(); }
+      else { c.save(); c.translate(p.x, p.y); c.rotate(p.r); c.fillRect(-p.w / 2, -p.w / (p.k === 2 ? 8 : 4), p.w, p.k === 2 ? p.w / 4 : p.w / 2); c.restore(); }
+    }
+    raf = P.length ? requestAnimationFrame(loop) : 0;
+    if (!P.length) c.clearRect(0, 0, W, H);
+  }
+  function clear(){ P = []; c.clearRect(0, 0, W, H); }
+  return {burst, rain, clear};
+})();
+
+/* =====================================================================
+   RENDER HELPERS
+   ===================================================================== */
+// Runs something after a delay, but cancels it if the screen has changed in the meantime.
+function later(fn, ms){ const rt = ui.rt; return setTimeout(() => { if (rt === ui.rt) fn(); }, ms); }
+// Small text helpers: twc = pick white-text styling for dark colours; rimStyle = coloured edge for White/Black; tamilOn = is Tamil-only switched on?; nameOf = the colour's name in the chosen language.
+const twc = c => c.t === WHITE ? 'tw' : 'td';
+const rimStyle = c => c.rim ? `--rim:${c.rim};` : '';
+const tamilOn = () => S && S.cfg.tamil;
+const nameOf = c => tamilOn() ? c.ta : c.id;
+
+// Draws the correct screen for the current step (setup / board / reveal / volume page / memory verse).
+function render(enter){
+  if (enter === undefined) enter = true;
+  ui.rt++;
+  stopCheer();
+  const app = $('#app');
+  app.classList.remove('spinning');
+  if (enter) fx.clear();
+  if (ui.setup || !S){ app.innerHTML = setupHTML(); syncSetup(); return; }
+  switch (S.phase){
+    case 'board':   app.innerHTML = boardHTML(); ui.justPicked = null; ui.boardIntro = false; break;
+    case 'reveal':  app.innerHTML = revealHTML(enter);
+                    if (enter) later(() => { sfx.chime(); fx.burst(90, .5, .45, 1.6); fx.burst(50, .12, .9, .5); fx.burst(50, .88, .9, .5); }, 420);
+                    break;
+    case 'cheer':   app.innerHTML = cheerHTML(); startCheer(); break;
+    case 'finale':  app.innerHTML = summaryHTML();
+                    if (enter) finaleFx();
+                    break;
+  }
+}
+
+/* ---------- board ---------- */
+// Builds ONE circle of the board (the "?" front and the coloured back).
+function cardHTML(id, i){
+  const c = colorOf(id), picked = isPicked(id), just = ui.justPicked === id, tm = tamilOn();
+  const cls = ['card', picked ? 'done' : 'open', just ? 'just' : ''].join(' ');
+  const back = picked
+    ? `<div class="face back ${twc(c)}"><span class="nm outl ${tm ? 'tmn tm' : ''}">${nameOf(c)}</span><span class="badge">${CHECK}</span></div>`
+    : '<div class="face back"></div>';      // an unrevealed circle has an empty back, so the colour is never hidden in the page
+  return `<div class="${cls}" data-c="${id}" ${c.rim ? 'data-rim="1"' : ''} style="--c:${c.hex};--t:${c.t};--i:${i};${rimStyle(c)}">
+    <div class="bob"><div class="inner"><div class="face front"><span class="q">?</span></div>${back}</div></div></div>`;
+}
+// Builds the whole board screen: header, rows of circles (balanced into 2 rows), picked-colour chips, and the SPIN button.
+function boardHTML(){
+  const tm = tamilOn();
+  const n = S.order.length, rowsN = n <= 5 ? 1 : 2, cols = Math.ceil(n / rowsN);
+  const done = openList().length === 0;
+  const cards = S.order.map(cardHTML);
+  const rowsHTML = [];
+  for (let r = 0, k = 0; r < rowsN; r++){
+    const cnt = r === 0 ? cols : n - cols;
+    rowsHTML.push(`<div class="grow">${cards.slice(k, k + cnt).join('')}</div>`); k += cnt;
+  }
+  const chips = S.picks.map(id => { const c = colorOf(id);
+    return `<span class="chip ${c.rim ? 'rim' : ''} ${twc(c)} ${tm ? 'tm' : ''}" style="--c:${c.hex};--t:${c.t};${rimStyle(c)}">${nameOf(c)}</span>`; }).join('');
+  // ✎ EDIT WORDS — Board screen
+  //   title = the line at the top left (English | Tamil).
+  //   pill  = the round counter at the top right ("Round 3 of 8" | Tamil) and the "all done" message.
+  //   Button text (SPIN! / FINISH) is further down, in the line that contains data-act="next".
+  const title = tm ? '<b>Matthew 19:14</b> · நீரே என் நம்பிக்கை' : '<b>Matthew 19:14</b> · You are my Hope';
+  const pill = done ? (tm ? 'அனைத்தும் முடிந்தது!' : 'All colours found!') : (tm ? `சுற்று ${roundNo()} / ${n}` : `Round ${roundNo()} of ${n}`);
+  return `<section class="screen board">
+    <div class="wm">${ANCHOR}</div>
+    <div class="hdr"><h1 class="${tm ? 'tm' : ''}">${title}</h1><span class="pill ${tm ? 'tm' : ''}">${pill}</span></div>
+    <div class="grid ${ui.boardIntro ? 'intro' : ''}" style="--cols:${cols};--rows:${rowsN}">${rowsHTML.join('')}</div>
+    <div class="strip">
+      <div class="chips">${chips}</div>
+      <button class="spin ${tm ? 'tm' : ''}" data-act="next" id="spin">${done ? (tm ? 'முடிவு' : 'FINISH') : (tm ? 'சுழற்று!' : 'SPIN!')}</button>
+    </div></section>`;
+}
+
+/* ---------- reveal ---------- */
+// Builds the full-screen colour page: the colour name in big letters + the next verse from the VERSES list.
+function revealHTML(enter){
+  const c = colorOf(S.cur.c), v = VERSES[S.cur.verse], tm = tamilOn();
+  // ✎ EDIT WORDS — Colour page: the round counter at the top (English | Tamil). The button text is in the line with data-act="next" near the bottom ("Next → Back to the board" | "அடுத்து →").
+  const pill = tm ? `சுற்று ${roundNo()} / ${S.order.length}` : `Round ${roundNo()} of ${S.order.length}`;
+  return `<section class="screen reveal ${enter ? 'enter' : ''} ${twc(c)} ${c.rim ? 'hasrim' : ''}" style="--c:${c.hex};--t:${c.t};${rimStyle(c)}--ox:${ui.ox};--oy:${ui.oy};--pat:${patCSS(c)}">
+    <div class="rv-pat"></div>
+    <div class="rv-top"><span class="pill dk ${tm ? 'tm' : ''}">${pill}</span></div>
+    <div class="rv-mid">
+      <h2 class="rv-name outl ${tm ? 'tmn tm' : ''}" style="margin:0">${nameOf(c)}</h2>
+    </div>
+    <div class="rv-info"><div class="vs ${tm ? 'tm' : ''}">“${tm ? v.ta : v.t}”</div><div class="vr ${tm ? 'tm' : ''}">${tm ? v.tr : v.r}</div></div>
+    <div class="rv-btns">
+      <div class="btns"><button class="btn pri ${tm ? 'tm' : ''}" data-act="next">${tm ? 'அடுத்து →' : 'Next → Back to the board'}</button></div>
+    </div></section>`;
+}
+
+/* ---------- theme pages ---------- */
+// Draws the two moving waves at the bottom of the memory-verse page.
+function waveSea(){
+  const path = () => { let d = 'M0 70Q100 30 200 70'; for (let i = 2; i <= 16; i++) d += 'T' + (i * 200) + ' 70'; return d + 'V200H0Z'; };
+  return `<div class="sea" aria-hidden="true">
+    <svg class="w1" viewBox="0 0 3200 200" preserveAspectRatio="none"><path d="${path()}" fill="#38BDF8" fill-opacity=".55"/></svg>
+    <svg class="w2" viewBox="0 0 3200 200" preserveAspectRatio="none"><path d="${path()}" fill="#0EA5E9" fill-opacity=".7"/></svg></div>`;
+}
+// Builds the LAST page ("Our memory verse"). It shows VERSES[1] (the 2nd verse in the list).
+// ✎ EDIT WORDS — Memory-verse page:
+//   "Our memory verse" / "மனப்பாட வசனம்"  = the small label above the verse
+//   "You are my Hope" / "நீரே என் நம்பிக்கை" = the line under the reference
+//   "← Back" / "New game (R)" (and Tamil) = the two buttons
+// To change the verse itself, do NOT edit here — change verse #2 in the VERSES list.
+function summaryHTML(){
+  const v = VERSES[1], tm = tamilOn();
+  const hl = tm ? v.thl : v.hl, txt = tm ? v.ta : v.t;
+  const verse = `“${hl ? txt.replace(hl, '<b>' + hl + '</b>') : txt}”`;
+  return `<section class="screen mem">
+    <div class="rays" style="left:75%"></div>
+    <div class="mem-t">
+      <div class="mem-l ${tm ? 'tm' : ''}">${tm ? 'மனப்பாட வசனம்' : 'Our memory verse'}</div>
+      <p class="mem-v ${tm ? 'tm' : ''}">${verse}</p>
+      <div class="mem-r ${tm ? 'tm' : ''}">${tm ? v.tr : v.r}</div>
+      <div class="mem-h ${tm ? 'tm' : ''}">${tm ? 'நீரே என் நம்பிக்கை' : 'You are my Hope'}</div>
+      <div class="btns"><button class="btn ${tm ? 'tm' : ''}" data-act="back">${tm ? '← பின்' : '← Back'}</button><button class="btn pri ${tm ? 'tm' : ''}" data-act="newgame">${tm ? 'புதிய ஆட்டம் (R)' : 'New game (R)'}</button></div>
+    </div>
+    <svg class="sc-art" viewBox="0 0 400 420" aria-label="Two hands holding a rope tied to an anchor">
+      <defs><radialGradient id="glow2"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+      <circle cx="200" cy="230" r="200" fill="url(#glow2)"/>
+      <g class="bobart">
+        <path d="M200 70V212" stroke="#64748B" stroke-width="8" stroke-dasharray="3 9" stroke-linecap="round"/>
+        <g class="sway" style="transform-origin:200px 228px"><g transform="translate(200 228) scale(.72)">${ANCH}</g></g>
+        <g transform="translate(115 22) scale(1.8)">${HANDS_INNER}</g>
+      </g>
+    </svg>
+    ${waveSea()}
+  </section>`;
+}
+// Confetti and fanfare when the memory-verse page opens.
+function finaleFx(){
+  later(() => { sfx.fanfare(); fx.burst(130, .5, .45, 2); fx.burst(80, .1, .95, .6); fx.burst(80, .9, .95, .6); }, 1500);
+  for (let i = 1; i <= 4; i++) later(() => fx.rain(45), 2200 + i * 650);
+}
+
+/* ---------- volume page ---------- */
+/* ---------- VOLUME PAGE (kids shout, the MC taps Space fast) ---------- */
+// CH_ROWS = how many dashes tall the sound-meter is (more = smoother).
+// cheer = the live numbers of the volume page (current level, taps, etc.).
+const CH_ROWS = 40;
+const cheer = {level:0, disp:0, done:false, doneAt:0, last:0, taps:[], raf:0, lastTap:0, lastKey:0, droneOn:false, L:[], R:[], litL:[], litR:[], ph:[], sp:[]};
+// Builds the volume page.
+// ✎ EDIT WORDS — Volume page:
+//   'Everybody shout!' / 'எல்லோரும் சத்தமாக!' = the small title (kept unchanged on purpose)
+//   'Jesus is my' / 'இயேசு என்'               = the big words while the volume rises
+// (The words shown when the volume is FULL are in the cheerCelebrate function a little further down.)
+function cheerHTML(){
+  const tm = tamilOn();
+  const rows = Array.from({length:CH_ROWS}, (_, i) => `<div class="rw" style="--sc:hsl(${(130 - 130 * i / (CH_ROWS - 1)).toFixed(0)} 85% 47%)"><i class="d l"></i><i class="d r"></i></div>`).join('');
+  return `<section class="screen cheer" id="cheer">
+    <div class="ch-left">
+      <div class="ch-title ${tm ? 'tm' : ''}" id="chTitle">${tm ? 'எல்லோரும் சத்தமாக!' : 'Everybody shout!'}</div>
+      <div class="ch-word ${tm ? 'tm' : ''}" id="chWord">${tm ? 'இயேசு என்' : 'Jesus is my'}</div>
+      <div class="ch-sub ${tm ? 'tm' : ''}" id="chSub"></div>
+    </div>
+    <div class="ch-card">
+      <div class="ch-hd">
+        <svg class="spk" id="chSpk" viewBox="0 0 72 56" aria-hidden="true">
+          <path d="M6 21h12l16-14v42L18 35H6z" fill="currentColor" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
+          <path class="wv w1" d="M43 21a11 11 0 0 1 0 14"/><path class="wv w2" d="M50 14a21 21 0 0 1 0 28"/><path class="wv w3" d="M57 7a31 31 0 0 1 0 42"/>
+        </svg>
+        <div class="pct" id="chPct">0%</div>
+      </div>
+      <div class="mt" id="chMt" style="--lv:0">
+        <div class="cl"></div><div class="clf"></div>
+        <div class="rws">${rows}</div>
+        <i class="knob"></i>
+      </div>
+    </div>
+  </section>`;
+}
+// Called when the volume page opens: resets the level to 0 and starts the animation loop.
+function startCheer(){
+  stopCheer();
+  Object.assign(cheer, {level:0, disp:0, done:false, doneAt:0, last:performance.now(), taps:[], lastTap:0, lastKey:0, droneOn:false});
+  const rows = [...document.querySelectorAll('.ch-card .rw')];
+  cheer.L = rows.map(r => r.children[0]); cheer.R = rows.map(r => r.children[1]);
+  cheer.litL = -1; cheer.litR = -1;
+  cheer.ph = [Math.random() * 6.28, Math.random() * 6.28]; cheer.sp = [3 + Math.random() * 2, 3.4 + Math.random() * 2];
+  cheer.raf = requestAnimationFrame(cheerFrame);
+}
+// Stops the volume animation and the buzzing sound (called whenever we leave the volume page).
+function stopCheer(){
+  if (cheer.raf){ cancelAnimationFrame(cheer.raf); cheer.raf = 0; }
+  sfx.droneStop();
+}
+// What a Space press does on the volume page: before full volume = a tap that raises the volume; after the celebration, a pause and then one press = continue to the memory verse.
+function cheerSpace(){
+  const now = performance.now(), gap = now - (cheer.lastKey || 0); cheer.lastKey = now;
+  if (cheer.done){ if (now - cheer.doneAt > 2500 && gap > 800) cheerContinue(); return; }   // a pause, then one press = continue
+  cheerTap();
+}
+// One tap raises the volume. Faster taps give bigger boosts.
+//   1.9 = points added by every tap        1.2 = the biggest extra boost for very fast tapping
+//   0.3 = extra boost per quick neighbouring tap    (taps in the last half-second count as "quick")
+// Make the game EASIER: raise 1.9.   Make it HARDER: lower 1.9.
+function cheerTap(){
+  if (cheer.done) return;
+  const now = performance.now();
+  cheer.taps = cheer.taps.filter(t => now - t < 500); cheer.taps.push(now);
+  const bonus = Math.min(1.2, (cheer.taps.length - 1) * .3);       // faster taps = bigger boost
+  cheer.level = Math.min(100, cheer.level + 1.9 + bonus);
+  cheer.lastTap = now; cheer.droneOn = true;
+  sfx.tick(cheer.level / 100); sfx.drone(cheer.level / 100);
+}
+// Lights up the first n dashes of one side of the meter (the rest stay dim).
+function setLit(arr, n, key){
+  if (cheer[key] === n) return;
+  arr.forEach((el, i) => el.classList.toggle('on', i < n)); cheer[key] = n;
+}
+// Runs about 60 times a second while the volume page is open: lowers the volume slowly (the "- 6 * dt" part:
+// change 6 to a bigger number to make the volume fall faster), moves the dashes, the knob and the percentage,
+// and starts the celebration when the level reaches 100.
+function cheerFrame(now){
+  const sec = $('#cheer'); if (!sec){ cheer.raf = 0; return; }
+  const dt = Math.min(.05, (now - cheer.last) / 1000); cheer.last = now;
+  if (!cheer.done) cheer.level = Math.max(0, cheer.level - 6 * dt);   // volume constantly falls; only fast tapping raises it
+  if (cheer.droneOn && now - cheer.lastTap > 500){ sfx.droneFade(); cheer.droneOn = false; }
+  cheer.disp += (cheer.level - cheer.disp) * Math.min(1, dt * 12);
+  const v = cheer.done ? 100 : cheer.disp, t = now / 1000;
+  const amp = cheer.done ? .08 : .2;
+  const fl = 1 - amp / 2 + amp / 2 * Math.sin(t * cheer.sp[0] + cheer.ph[0]);   // left and right channels wobble a little differently
+  const fr = 1 - amp / 2 + amp / 2 * Math.sin(t * cheer.sp[1] + cheer.ph[1]);
+  let nl = Math.round(CH_ROWS * Math.min(1, v / 100 * fl)), nr = Math.round(CH_ROWS * Math.min(1, v / 100 * fr));
+  if (v > 1.5){ nl = Math.max(1, nl); nr = Math.max(1, nr); }
+  setLit(cheer.L, nl, 'litL'); setLit(cheer.R, nr, 'litR');
+  $('#chMt').style.setProperty('--lv', v.toFixed(1));
+  $('#chPct').textContent = Math.round(v) + '%';
+  $('#chWord').style.setProperty('--k', (1 + v / 100 * .1).toFixed(3));
+  $('#chSpk').setAttribute('class', 'spk ' + (v > 66 ? 'l3' : v > 40 ? 'l2' : v > 12 ? 'l1' : ''));
+  if (!cheer.done && cheer.level >= 99.9) cheerCelebrate(sec);
+  cheer.raf = requestAnimationFrame(cheerFrame);
+}
+// The celebration at full volume (confetti, fanfare, glowing card).
+// ✎ EDIT WORDS — what the screen says when the volume is FULL:
+//   'Jesus is my<br>HOPE!'  (English)   |   'இயேசு என்<br>நம்பிக்கை!'  (Tamil).   <br> means "start a new line".
+function cheerCelebrate(sec){
+  const tm = tamilOn();
+  cheer.done = true; cheer.doneAt = performance.now();
+  sec.classList.add('done');
+  sfx.droneStop(); sfx.fanfare();
+  $('#chWord').innerHTML = tm ? 'இயேசு என்<br>நம்பிக்கை!' : 'Jesus is my<br>HOPE!';
+  $('#chSub').textContent = tm ? '' : 'நம்பிக்கை · Nambikkai';
+  fx.burst(170, .5, .5, 2); fx.burst(100, .08, .95, .6); fx.burst(100, .92, .95, .6);
+  for (let i = 1; i <= 7; i++) later(() => { fx.rain(55); if (i % 2) fx.burst(70, .2 + Math.random() * .6, .8, 1.2); }, i * 600);
+}
+
+/* ---------- setup ---------- */
+// Builds the setup screen (this one is for the MC, not the kids): colour tiles, Sound and Tamil options, Start button.
+// ✎ EDIT WORDS — Setup screen: the heading and instructions are the plain English texts inside this function.
+function setupHTML(){
+  return `<section class="screen setup">
+  <div class="su">
+    <div class="su-h"><div><h1>Pick a Colour</h1><p>Tap a colour to switch it on or off, then press “Start the game!”.</p></div></div>
+    <div class="su-sec"><h3>Today’s colours <span id="suCount"></span></h3>
+      <div class="qp"><button type="button" class="qb" data-act="defaults">Standard 8</button><button type="button" class="qb" data-act="clearcolours">Clear all</button></div></div>
+    <div class="cgrid">${COLORS.map(c => `<button type="button" class="tile" data-act="tc" data-c="${c.id}" aria-pressed="false"><span class="sw" style="background:${c.hex};border-color:${c.rim || 'rgba(11,21,48,.2)'}"></span><span class="tn">${c.id}</span></button>`).join('')}</div>
+    <h3>Options</h3>
+    <div class="opts"><button type="button" class="opt" data-act="tsound" id="tSound" aria-pressed="false"><span>Sound</span><b></b></button>
+      <button type="button" class="opt" data-act="ttamil" id="tTamil" aria-pressed="false"><span>Tamil (தமிழ்) only</span><b></b></button></div>
+    <p class="hint">Tamil ON: the kids see Tamil only.</p>
+  </div>
+  <div class="su-foot"><div class="su-msg" id="suMsg"></div>
+    <div class="su-act">${S ? '<button type="button" class="btn" data-act="cancelsetup">Back to the game in progress</button>' : ''}<button type="button" class="btn gold" data-act="start" id="suStart">Start the game!</button></div></div>
+  </section>`;
+}
+// Checks the colour choice: returns a warning if fewer than 2 or more than 10 colours are selected (the Start button then stays off).
+function setupProblem(){
+  const d = ui.draft;
+  if (d.colors.length < 2) return 'Pick at least 2 colours.';
+  if (d.colors.length > 10) return 'Pick at most 10 colours.';
+  return '';
+}
+// Updates the setup screen after every tap: which tiles look selected, ON/OFF labels, the message at the bottom, and the Start button.
+function syncSetup(){
+  const d = ui.draft, root = $('#app'); if (!root.querySelector('.setup')) return;
+  root.querySelectorAll('.tile').forEach(t => { const on = d.colors.includes(t.dataset.c); t.classList.toggle('on', on); t.setAttribute('aria-pressed', on); });
+  const sB = $('#tSound'), tB = $('#tTamil');
+  sB.classList.toggle('on', d.sound); sB.setAttribute('aria-pressed', d.sound); sB.querySelector('b').textContent = d.sound ? '✓ ON' : 'OFF';
+  tB.classList.toggle('on', d.tamil); tB.setAttribute('aria-pressed', d.tamil); tB.querySelector('b').textContent = d.tamil ? '✓ ON' : 'OFF';
+  $('#suCount').textContent = `— ${d.colors.length} chosen (2 to 10)`;
+  const p = setupProblem();
+  $('#suMsg').textContent = p || `${d.colors.length} colours ready — let’s go!`;
+  $('#suStart').disabled = !!p;
+}
+
+/* =====================================================================
+   GAME ACTIONS
+   ===================================================================== */
+// Pressing "Start the game!": makes a new game from the setup choices and shows the board.
+function startGame(){
+  if (setupProblem()) return;
+  const cfg = JSON.parse(JSON.stringify(ui.draft));
+  soundOn = cfg.sound; S = newGame(cfg); ui.setup = false; ui.boardIntro = true; ui.justPicked = null;
+  saveCfg(cfg); save(); render(true); sfx.pop();
+}
+
+// SPIN: the winning colour is chosen FIRST by random choice, and only then is the "jumping glow" animation made to land on it.
+// The animation lasts about 3 seconds (N = 20 jumps). While it runs, all keys except Esc are ignored.
+function startSpin(){
+  if (ui.spinning || S.phase !== 'board') return;
+  const open = openList();
+  if (!open.length){ goFinale(); return; }
+  const win = open[rnd(open.length)];                    // winner chosen FIRST
+  ui.spinning = true; $('#app').classList.add('spinning');
+  const N = RM.matches ? 8 : 20, len = open.length, wp = open.indexOf(win);
+  const start = (((wp - (N - 1)) % len) + len) % len;
+  let t = 0;
+  for (let i = 0; i < N; i++){
+    const c = open[(start + i) % len];
+    ui.timers.push(setTimeout(() => { highlight(c); sfx.tick(i / N); }, t));
+    t += (RM.matches ? 40 : 55) + (RM.matches ? 110 : 300) * Math.pow(i / (N - 1), 2.2);
+  }
+  sfx.roll(t / 1000);
+  ui.timers.push(setTimeout(() => land(win), t + 250));
+}
+// Puts the glow on one circle (and removes it from the others).
+function highlight(c){
+  document.querySelectorAll('.card.hl').forEach(x => x.classList.remove('hl'));
+  const el = document.querySelector(`.card[data-c="${c}"]`); if (el) el.classList.add('hl');
+}
+// Stops a spin in progress (timers and drum-roll).
+function clearSpin(){
+  ui.timers.forEach(clearTimeout); ui.timers = []; ui.spinning = false; sfx.stopRoll();
+}
+// The chosen circle "lands": it grows, then the full-screen colour page opens from that circle, showing the next verse.
+function land(win){
+  const el = document.querySelector(`.card[data-c="${win}"]`);
+  document.querySelectorAll('.card.hl').forEach(x => x.classList.remove('hl'));
+  if (el) el.classList.add('land');
+  sfx.stopRoll(); sfx.pop();
+  if (el){ const r = el.getBoundingClientRect(); ui.ox = Math.round(r.left + r.width / 2) + 'px'; ui.oy = Math.round(r.top + r.height / 2) + 'px'; }
+  else { ui.ox = '50%'; ui.oy = '50%'; }
+  ui.timers = [setTimeout(() => {
+    ui.timers = []; ui.spinning = false;
+    pushUndo();
+    S.cur = {c:win, verse:S.verseN % VERSES.length};
+    S.verseN++; S.phase = 'reveal'; save(); render(true);
+  }, RM.matches ? 100 : 750)];
+}
+// Esc during a spin: cancels it and returns to the board.
+function cancelSpin(){
+  clearSpin(); render(false); toast('Spin cancelled');
+}
+
+// "Next" on the colour page: marks the colour as picked (it stays open on the board) and goes back to the board.
+function commitReveal(){
+  if (S.phase !== 'reveal') return;
+  pushUndo();
+  S.picks.push(S.cur.c);
+  ui.justPicked = S.cur.c; S.cur = null; S.phase = 'board'; save(); render(true);
+  if (openList().length === 0) toast('All colours found! Press Space to finish');
+}
+// FINISH (or the E key): goes to the volume page. Pressing E again on the volume page skips to the memory verse.
+function goFinale(){
+  if (!S || S.phase === 'finale' || ui.spinning) return;
+  if (S.phase === 'cheer'){ cheerContinue(); return; }
+  pushUndo();
+  S.cur = null; S.phase = 'cheer'; save(); render(true);
+}
+// Leaves the volume page and shows the memory-verse page.
+function cheerContinue(){
+  pushUndo(); S.phase = 'finale'; save(); render(true);
+}
+// On the very last page, Space does nothing except remind how to start again.
+function finaleNext(){ toast('Press R to start a new game'); }
+// Step back one action (U key or the Left arrow / Page Up).
+function undo(){
+  if (!S || !S.undo.length){ toast(S ? 'Nothing to undo' : ''); return; }
+  const u = S.undo, prev = JSON.parse(u.pop()); prev.undo = u; S = prev;
+  save(); render(false); toast('Undone');
+}
+// The "forward" action for Space / Right arrow / Page Down / clicker: depends on which screen we are on.
+function next(){
+  if (!S) return;
+  switch (S.phase){
+    case 'board': startSpin(); break;
+    case 'reveal': commitReveal(); break;
+    case 'cheer': cheerSpace(); break;
+    case 'finale': finaleNext(); break;
+  }
+}
+
+/* ---------- confirmations & overlays ---------- */
+// A pop-up question with Cancel / Yes buttons (used before starting a new game or opening setup).
+function confirmBox(title, msg, onYes, yes){
+  ui.modal = {onYes};
+  $('#modal').innerHTML = `<div class="ov"><div class="box" role="dialog" aria-modal="true"><h2>${title}</h2><p>${msg}</p>
+    <div class="btns"><button class="btn" data-m="no">Cancel (Esc)</button><button class="btn pri" data-m="yes">${yes || 'Yes'} (Enter)</button></div></div></div>`;
+}
+function closeModal(){ ui.modal = null; $('#modal').innerHTML = ''; }
+// R key: asks, then opens the colour setup so a new game can be started.
+function askReset(){
+  if (!S) return;
+  confirmBox('Start a new game?', 'You will pick the colours first. The current game is kept until you press Start Game.', () => {
+    ui.draft = JSON.parse(JSON.stringify(S.cfg)); ui.setup = true; render(true);
+  }, 'Choose colours');
+}
+// S key: asks, then opens the colour setup screen.
+function askSetup(){
+  if (!S) return;
+  confirmBox('Go to the colour setup screen?', 'You can change the colours. Starting from setup begins a new game.', () => {
+    ui.draft = JSON.parse(JSON.stringify(S.cfg)); ui.setup = true; render(true);
+  }, 'Open setup');
+}
+// ✎ EDIT WORDS — the keyboard help list (shown when the ? key is pressed).
+function showHelp(){
+  ui.help = true;
+  $('#help').innerHTML = `<div class="ov"><div class="box" role="dialog" aria-modal="true"><h2>Keyboard &amp; clicker</h2><div class="keys">
+    <kbd>Space / → / PageDown</kbd><span>Spin, or confirm the colour and return to the board</span>
+    <kbd>← / PageUp</kbd><span>Back one step</span>
+    <kbd>U</kbd><span>Undo</span>
+    <kbd>E</kbd><span>Jump to the volume page (again: memory verse)</span>
+    <kbd>Space (volume page)</kbd><span>Tap fast as the kids shout — faster taps raise the volume</span>
+    <kbd>M</kbd><span>Mute / unmute</span>
+    <kbd>F</kbd><span>Fullscreen</span>
+    <kbd>R</kbd><span>New game (asks first)</span>
+    <kbd>S</kbd><span>Setup screen (asks first)</span>
+    <kbd>Esc</kbd><span>Cancel a spin / close this help</span>
+    <kbd>?</kbd><span>Show or hide this help</span></div>
+    <p style="margin:0">Quiet signal: MC says “Anchor…” — kids answer “DOWN!” and freeze with a hand on their heart.</p>
+    <div class="btns" style="margin-top:2vmin"><button class="btn pri" data-h="close">Close (Esc)</button></div></div></div>`;
+}
+function hideHelp(){ ui.help = false; $('#help').innerHTML = ''; }
+
+/* =====================================================================
+   INPUT
+   ===================================================================== */
+// Switches sound on/off (M key or the Sound button on the setup screen).
+function setSound(on){
+  soundOn = on; if (S) { S.cfg.sound = on; save(); }
+  if (ui.draft){ ui.draft.sound = on; if (ui.setup) syncSetup(); }
+  toast(on ? 'Sound on' : 'Sound off (muted)'); if (on) sfx.pop();
+}
+// Fullscreen on/off (F key).
+function toggleFs(){
+  try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (e) {}
+}
+// True while the setup screen is showing.
+const inSetup = () => ui.setup || !S;
+
+// KEYBOARD CONTROLS (the list is also shown by the ? key):
+//   Space / Right arrow / Page Down = spin or go forward     Left arrow / Page Up / U = back (undo)
+//   E = go to the volume page     M = mute     F = fullscreen     R = new game     S = setup     Esc = cancel a spin
+document.addEventListener('keydown', e => {
+  sfx.unlock();
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key, tag = (e.target && e.target.tagName) || '';
+  if (ui.modal){
+    if (k === 'Enter' || k === 'y' || k === 'Y'){ const f = ui.modal.onYes; closeModal(); f(); }
+    else if (k === 'Escape' || k === 'n' || k === 'N') closeModal();
+    e.preventDefault(); return;
+  }
+  if (ui.help){ if (k === 'Escape' || k === '?' || k === 'Enter' || k === ' ') { hideHelp(); e.preventDefault(); } return; }
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'){ if (k === 'Escape') e.target.blur(); return; }
+  if (k === '?'){ showHelp(); e.preventDefault(); return; }
+  if (inSetup()){
+    if (k === 'f' || k === 'F') toggleFs();
+    else if (k === 'm' || k === 'M') setSound(!soundOn);
+    else if (k === 'Escape' && S){ ui.setup = false; render(false); }
+    return;
+  }
+  if (ui.spinning){ if (k === 'Escape') cancelSpin(); e.preventDefault(); return; }
+  if (e.repeat) { e.preventDefault(); return; }
+  let used = true;
+  switch (k){
+    case ' ': case 'ArrowRight': case 'PageDown': next(); break;
+    case 'ArrowLeft': case 'PageUp': undo(); break;
+    case 'u': case 'U': undo(); break;
+    case 'e': case 'E': goFinale(); break;
+    case 'm': case 'M': setSound(!soundOn); break;
+    case 'f': case 'F': toggleFs(); break;
+    case 'r': case 'R': askReset(); break;
+    case 's': case 'S': askSetup(); break;
+    default: used = false;
+  }
+  if (used) e.preventDefault();
+});
+document.addEventListener('keyup', e => { if (e.key === ' ' && !inSetup() && !ui.modal && !ui.help && !/INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) e.preventDefault(); });
+document.addEventListener('pointerdown', () => sfx.unlock());
+
+$('#modal').addEventListener('click', e => {
+  const b = e.target.closest('[data-m]'); if (!b || !ui.modal) return;
+  const f = ui.modal.onYes; closeModal(); if (b.dataset.m === 'yes') f();
+});
+$('#help').addEventListener('click', e => { if (e.target.closest('[data-h]') || e.target.classList.contains('ov')) hideHelp(); });
+
+// What each on-screen button does. The names (next, back, start ...) match the data-act="..." written on the buttons.
+// The line with 'Maximum 10 colours' is where the 10-colour limit is set.
+const ACT = {
+  next, back: undo, newgame: askReset, start: startGame,
+  cancelsetup: () => { ui.setup = false; render(false); },
+  tc: el => {
+    const d = ui.draft, c = el.dataset.c, i = d.colors.indexOf(c);
+    if (i >= 0) d.colors.splice(i, 1);
+    else if (d.colors.length >= 10){ toast('Maximum 10 colours'); return; }
+    else d.colors.push(c);
+    syncSetup();
+  },
+  tsound: () => { ui.draft.sound = !ui.draft.sound; soundOn = ui.draft.sound; syncSetup(); if (soundOn) sfx.pop(); },
+  defaults: () => { ui.draft.colors = DEFAULT8.slice(); syncSetup(); },
+  clearcolours: () => { ui.draft.colors = []; syncSetup(); },
+  ttamil: () => { ui.draft.tamil = !ui.draft.tamil; syncSetup(); }
+};
+$('#app').addEventListener('click', e => {
+  sfx.unlock();
+  const b = e.target.closest('[data-act]');
+  if (b){ if (ui.spinning) return; const f = ACT[b.dataset.act]; if (f) f(b); return; }
+  if (S && S.phase === 'cheer' && e.target.closest('.cheer')){ next(); return; }
+  const card = e.target.closest('.card');
+  if (card && !ui.spinning && card.classList.contains('open')){   // revealed cards are locked; open ones just wiggle
+    card.classList.remove('wig'); void card.offsetWidth; card.classList.add('wig'); sfx.tick(.3);
+  }
+});
+
+/* =====================================================================
+   BOOT
+   ===================================================================== */
+// Builds the background: five slowly drifting clouds and two layers of waves at the bottom. (Cloud numbers: left %, top, width, speed, start delay.)
+function makeSky(){
+  let h = '';
+  const clouds = [[8,'7vh','24vw',70,0],[40,'16vh','18vw',90,-30],[70,'4vh','22vw',80,-55],[20,'30vh','15vw',100,-20],[85,'26vh','17vw',110,-70]];
+  clouds.forEach(([x,y,w,d,dl]) => { h += `<i class="cloud" style="--x:${x}%;--y:${y};--w:${w};--d:${d}s;--dl:${dl}s"></i>`; });
+  const path = () => { let d = 'M0 60Q100 20 200 60'; for (let i = 2; i <= 16; i++) d += 'T' + (i * 200) + ' 60'; return d + 'V200H0Z'; };
+  h += `<div class="seabg"><svg viewBox="0 0 3200 200" preserveAspectRatio="none" style="animation:wave 22s linear infinite"><path d="${path()}" fill="#7DD3FC" fill-opacity=".55"/></svg><svg viewBox="0 0 3200 200" preserveAspectRatio="none" style="animation:wave 15s linear infinite reverse;bottom:-3vh"><path d="${path()}" fill="#38BDF8" fill-opacity=".5"/></svg></div>`;
+  $('#sky').innerHTML = h;
+}
+// START-UP: runs once when the page opens.
+// If a game is already in progress (for example after a refresh) it carries on exactly where it was.
+// If the last game had not started yet or is finished, the setup screen is shown instead.
+(function boot(){
+  makeSky();
+  ui.draft = loadCfg() || defaultCfg();
+  S = load();
+  if (S) soundOn = S.cfg.sound !== false; else soundOn = ui.draft.sound !== false;
+  if (S && ((S.phase === 'board' && !S.picks.length) || S.phase === 'finale')){
+    ui.draft = JSON.parse(JSON.stringify(S.cfg)); ui.setup = true;
+  }
+  render(true);
+})();
+})();
+</script>
+</body>
+</html>

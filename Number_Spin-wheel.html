@@ -1,0 +1,639 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title></title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        width: 100%;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-family: Arial, sans-serif;
+        background: #e8eaed;
+        color: #202433;
+    }
+
+    .container {
+        width: 100%;
+    }
+
+    .brand-label {
+        position: fixed;
+        top: 50%;
+        left: 8px;
+        z-index: 1;
+        color: #858b95;
+        font-size: clamp(1.4rem, 30vw, 3rem);
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        white-space: nowrap;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        transform: rotate(180deg);
+        opacity: 0;
+        pointer-events: none;
+        user-select: none;
+        animation: brand-label-reveal 450ms ease-out 1.15s both;
+    }
+
+    @keyframes brand-label-reveal {
+        from {
+            opacity: 0;
+            transform: translate(-12px, -50%) rotate(180deg);
+        }
+
+        to {
+            opacity: 1;
+            transform: translate(0, -50%) rotate(180deg);
+        }
+    }
+
+    .wheel-entrance {
+        width: min(100vw, 100vh);
+        width: min(100vw, 100dvh);
+        margin: 0 auto;
+        animation: wheel-roll-in 1.15s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+    }
+
+    .wheel-container {
+        position: relative;
+        width: 100%;
+        margin: 0 auto;
+        container-type: inline-size;
+        transform: scale(1);
+        transition: transform 650ms cubic-bezier(0.2, 0.75, 0.25, 1);
+    }
+
+    .wheel-container.zoomed-out {
+        transform: scale(0.9);
+    }
+
+    @keyframes wheel-roll-in {
+        from {
+            transform: translate3d(-120vw, 0, 0) rotate(-540deg) scale(0.55);
+        }
+
+        72% {
+            transform: translate3d(2vw, 0, 0) rotate(18deg) scale(1.04);
+        }
+
+        to {
+            transform: translate3d(0, 0, 0) rotate(0) scale(1);
+        }
+    }
+
+    canvas {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    #soundButton {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        z-index: 5;
+        display: grid;
+        width: 52px;
+        height: 52px;
+        place-items: center;
+        padding: 0;
+        border: 1px solid rgba(148, 163, 184, 0.55);
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.92);
+        color: #172033;
+        box-shadow: 0 5px 18px rgba(15, 23, 42, 0.2);
+        cursor: pointer;
+    }
+
+    #soundButton svg {
+        width: 25px;
+        height: 25px;
+        fill: currentColor;
+    }
+
+    #soundButton .sound-off {
+        display: none;
+    }
+
+    #soundButton.muted .sound-on {
+        display: none;
+    }
+
+    #soundButton.muted .sound-off {
+        display: block;
+    }
+
+    .pointer {
+        position: absolute;
+        top: -0.5cqw;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2;
+        width: 0;
+        height: 0;
+        border-left: 9cqw solid transparent;
+        border-right: 9cqw solid transparent;
+        border-top: 18cqw solid #ef4444;
+        filter: drop-shadow(0 1.5cqw 2cqw rgba(15, 23, 42, 0.42));
+    }
+
+    #resultOverlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: grid;
+        place-items: center;
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        font-size: min(55vw, 55vh);
+        font-weight: 800;
+        line-height: 1;
+        text-shadow: 0 8px 36px rgba(0, 0, 0, 0.45);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 180ms ease, visibility 180ms ease;
+    }
+
+    #resultOverlay.visible {
+        opacity: 1;
+        visibility: visible;
+        animation: result-fade-in 500ms ease-out both;
+    }
+
+    @keyframes result-fade-in {
+        from {
+            opacity: 0;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .wheel-entrance,
+        .wheel-container,
+        #resultOverlay {
+            transition-duration: 0.01ms;
+        }
+
+        .wheel-entrance {
+            animation: none;
+        }
+
+        .brand-label {
+            animation-delay: 0s;
+        }
+
+        #resultOverlay.visible {
+            animation: none;
+        }
+    }
+</style>
+</head>
+
+<body>
+<div class="container">
+    <div class="brand-label">SUPER SPINNER</div>
+    <div class="wheel-entrance">
+        <div class="wheel-container">
+            <div class="pointer"></div>
+            <canvas id="wheel" width="360" height="360"></canvas>
+        </div>
+    </div>
+</div>
+
+<div id="resultOverlay" role="status" aria-live="assertive"></div>
+<button id="soundButton" type="button" aria-label="Mute music" aria-pressed="true" title="Mute music (M)">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path class="sound-on" d="M3 9v6h4l5 4V5L7 9H3zm13.5 3a4.5 4.5 0 0 0-2.5-4.03v8.05A4.5 4.5 0 0 0 16.5 12zm-2.5-9v2.06a7 7 0 0 1 0 13.88V21a9 9 0 0 0 0-18z"/>
+        <path class="sound-off" d="M3 9v6h4l5 4V5L7 9H3zm12.59 3 2.12 2.12-1.42 1.42L14.17 13.4l-2.12 2.13-1.42-1.42L12.76 12l-2.13-2.12 1.42-1.42 2.12 2.13 2.12-2.13 1.42 1.42L15.59 12z"/>
+    </svg>
+</button>
+
+<script>
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+const wheelContainer = document.querySelector(".wheel-container");
+
+const resultOverlay = document.getElementById("resultOverlay");
+const soundButton = document.getElementById("soundButton");
+
+const segmentShades = [
+    ["#60a5fa", "#2563eb", "#1e40af"],
+    ["#fcd34d", "#f59e0b", "#b45309"],
+    ["#4ade80", "#16a34a", "#166534"],
+    ["#f472b6", "#db2777", "#9d174d"],
+    ["#a78bfa", "#7c3aed", "#5b21b6"],
+    ["#22d3ee", "#0891b2", "#155e75"],
+    ["#fb923c", "#ea580c", "#9a3412"],
+    ["#818cf8", "#4f46e5", "#312e81"],
+    ["#a3e635", "#65a30d", "#3f6212"],
+    ["#f87171", "#dc2626", "#991b1b"]
+];
+
+const segmentAngle = (2 * Math.PI) / 10;
+
+let angle = 0;
+let spinning = false;
+let stopping = false;
+let startTime = 0;
+let startAngle = 0;
+let targetAngle = 0;
+let duration = 4200;
+let resultTimer;
+let audioContext;
+let musicStep = 0;
+let musicAngle = 0;
+let lastSpinNoteAt = 0;
+let soundEnabled = true;
+
+const spinNotes = [
+    523.25, 659.25, 783.99, 659.25,
+    587.33, 698.46, 880, 698.46
+];
+
+function resumeAudio(onReady) {
+    if (!audioContext) {
+        audioContext = new AudioContext();
+    }
+
+    audioContext.resume().then(onReady, error => {
+        console.error("Unable to start game audio:", error);
+    });
+}
+
+function playTone(frequency, startAt, length, volume, waveform = "triangle") {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    oscillator.type = waveform;
+    oscillator.frequency.setValueAtTime(frequency, startAt);
+    gain.gain.setValueAtTime(0.0001, startAt);
+    gain.gain.exponentialRampToValueAtTime(volume, startAt + 0.025);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + length);
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.start(startAt);
+    oscillator.stop(startAt + length + 0.02);
+}
+
+function playSpinNote() {
+    const now = audioContext.currentTime;
+    const note = spinNotes[musicStep % spinNotes.length];
+
+    playTone(note, now, 0.15, 0.11);
+    if (musicStep % 4 === 0) {
+        playTone(note / 2, now, 0.24, 0.055, "sine");
+    }
+    musicStep++;
+}
+
+function startSpinMusic() {
+    if (!soundEnabled || !spinning || !audioContext) return;
+
+    musicStep = 0;
+    musicAngle = angle;
+    lastSpinNoteAt = audioContext.currentTime;
+    playSpinNote();
+}
+
+function stopSpinMusic() {
+    musicAngle = angle;
+}
+
+function updateSpinMusic() {
+    if (!soundEnabled || !spinning || !audioContext ||
+        audioContext.state !== "running") return;
+
+    const beatAngle = stopping ? 1.5 : 2;
+    let crossedBeat = false;
+
+    while (angle - musicAngle >= beatAngle) {
+        musicAngle += beatAngle;
+        crossedBeat = true;
+    }
+
+    if (crossedBeat && audioContext.currentTime - lastSpinNoteAt >= 0.085) {
+        playSpinNote();
+        lastSpinNoteAt = audioContext.currentTime;
+    }
+}
+
+function playFinishJingle() {
+    const now = audioContext.currentTime;
+    playTone(261.63, now, 0.65, 0.09, "sine");
+    [523.25, 659.25, 783.99, 1046.5, 1318.51].forEach((note, index) => {
+        playTone(note, now + index * 0.11, 0.38, 0.17);
+    });
+}
+
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    soundButton.classList.toggle("muted", !soundEnabled);
+    soundButton.setAttribute("aria-pressed", String(soundEnabled));
+    soundButton.setAttribute("aria-label", soundEnabled ? "Mute music" : "Enable music");
+    soundButton.title = soundEnabled ? "Mute music (M)" : "Enable music (M)";
+
+    if (!soundEnabled) {
+        stopSpinMusic();
+    } else if (spinning) {
+        resumeAudio(startSpinMusic);
+    }
+}
+
+function resizeWheel() {
+    const displaySize = canvas.getBoundingClientRect().width;
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 3);
+    const backingSize = Math.min(
+        Math.ceil(displaySize * pixelRatio),
+        4096
+    );
+
+    if (canvas.width === backingSize && canvas.height === backingSize) {
+        return;
+    }
+
+    canvas.width = backingSize;
+    canvas.height = backingSize;
+    ctx.setTransform(backingSize / 360, 0, 0, backingSize / 360, 0, 0);
+    drawWheel();
+}
+
+function drawWheel() {
+    const cx = 180;
+    const cy = 180;
+    const radius = 164;
+
+    ctx.clearRect(0, 0, 360, 360);
+
+    ctx.save();
+    ctx.shadowColor = "rgba(15, 23, 42, 0.3)";
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 175, 0, Math.PI * 2);
+    const rim = ctx.createLinearGradient(0, 5, 0, 355);
+    rim.addColorStop(0, "#475569");
+    rim.addColorStop(0.18, "#111827");
+    rim.addColorStop(0.82, "#0f172a");
+    rim.addColorStop(1, "#334155");
+    ctx.fillStyle = rim;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, 169, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.72)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    for (let i = 0; i < 10; i++) {
+        const startAngle = angle + i * segmentAngle
+            - Math.PI / 2;
+        const endAngle = startAngle + segmentAngle;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius, startAngle, endAngle);
+    ctx.closePath();
+    const segmentGradient = ctx.createLinearGradient(
+        cx - radius, cy - radius, cx + radius, cy + radius
+    );
+    segmentGradient.addColorStop(0, segmentShades[i][0]);
+    segmentGradient.addColorStop(0.52, segmentShades[i][1]);
+    segmentGradient.addColorStop(1, segmentShades[i][2]);
+    ctx.fillStyle = segmentGradient;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.88)";
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    const midAngle = startAngle + segmentAngle / 2;
+    const textRadius = 113;
+    const x = cx + Math.cos(midAngle) * textRadius;
+    const y = cy + Math.sin(midAngle) * textRadius;
+
+    ctx.beginPath();
+    ctx.arc(x, y, 24, 0, Math.PI * 2);
+    const badgeGradient = ctx.createRadialGradient(
+        x - 6, y - 8, 2, x, y, 25
+    );
+    badgeGradient.addColorStop(0, "rgba(255, 255, 255, 0.34)");
+    badgeGradient.addColorStop(1, "rgba(15, 23, 42, 0.23)");
+    ctx.fillStyle = badgeGradient;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "800 28px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.shadowColor = "rgba(15, 23, 42, 0.34)";
+    ctx.shadowBlur = 3;
+    ctx.shadowOffsetY = 1;
+    ctx.fillText(i + 1, x, y);
+    ctx.restore();
+}
+
+ctx.beginPath();
+ctx.arc(cx, cy, 27, 0, Math.PI * 2);
+const hubRing = ctx.createLinearGradient(cx - 27, cy - 27, cx + 27, cy + 27);
+hubRing.addColorStop(0, "#f8fafc");
+hubRing.addColorStop(0.48, "#cbd5e1");
+hubRing.addColorStop(1, "#64748b");
+ctx.fillStyle = hubRing;
+ctx.fill();
+
+ctx.beginPath();
+ctx.arc(cx, cy, 21, 0, Math.PI * 2);
+const hub = ctx.createRadialGradient(cx - 7, cy - 9, 2, cx, cy, 23);
+hub.addColorStop(0, "#ffffff");
+hub.addColorStop(0.72, "#f1f5f9");
+hub.addColorStop(1, "#cbd5e1");
+ctx.fillStyle = hub;
+ctx.fill();
+ctx.strokeStyle = "rgba(15, 23, 42, 0.45)";
+ctx.lineWidth = 1;
+ctx.stroke();
+
+ctx.beginPath();
+ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+const axle = ctx.createRadialGradient(cx - 2, cy - 3, 1, cx, cy, 8);
+axle.addColorStop(0, "#475569");
+axle.addColorStop(1, "#0f172a");
+ctx.fillStyle = axle;
+ctx.fill();
+
+for (let i = 0; i < 10; i++) {
+    const tickAngle = angle + (i + 0.5) * segmentAngle - Math.PI / 2;
+    const tickX = cx + Math.cos(tickAngle) * 170;
+    const tickY = cy + Math.sin(tickAngle) * 170;
+    ctx.beginPath();
+    ctx.arc(tickX, tickY, 2.1, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+}
+}
+
+function normalizeRadians(value) {
+    return ((value % (2 * Math.PI)) + 2 * Math.PI)
+        % (2 * Math.PI);
+}
+
+// Determine the number under the fixed top pointer.
+function getSelectedNumber() {
+    const pointerAngle = normalizeRadians(-angle);
+
+    return Math.floor(
+        pointerAngle / segmentAngle
+    ) + 1;
+}
+
+function animateSpin() {
+    if (!spinning) return;
+
+    if (!stopping) {
+        // Keep rotating until a keyboard number is pressed.
+        angle += 0.22;
+        updateSpinMusic();
+        drawWheel();
+        requestAnimationFrame(animateSpin);
+        return;
+    }
+
+    const now = performance.now();
+    const progress = Math.min(
+        (now - startTime) / duration, 1
+    );
+
+    // Smooth ease-out deceleration.
+    const eased = 1 - Math.pow(1 - progress, 4);
+
+    angle = startAngle +
+        (targetAngle - startAngle) * eased;
+
+    updateSpinMusic();
+    drawWheel();
+
+    if (progress < 1) {
+        requestAnimationFrame(animateSpin);
+        return;
+    }
+
+    angle = targetAngle;
+    drawWheel();
+
+    spinning = false;
+    stopping = false;
+    wheelContainer.classList.remove("zoomed-out");
+    stopSpinMusic();
+
+    if (soundEnabled) {
+        resumeAudio(() => {
+            if (!spinning && soundEnabled) playFinishJingle();
+        });
+    }
+
+    const result = getSelectedNumber();
+    resultTimer = window.setTimeout(() => {
+        resultOverlay.textContent = result;
+        resultOverlay.classList.add("visible");
+    }, 1000);
+}
+
+function selectNumber(number) {
+    if (!spinning || stopping) return;
+
+    stopping = true;
+
+    // Each segment's centre must align with the top pointer.
+    // Canvas number 1 starts at the top and runs clockwise.
+    const desiredAngle =
+        -((number - 0.5) * segmentAngle);
+
+    const currentAngle = normalizeRadians(angle);
+    const desiredNormalized = normalizeRadians(desiredAngle);
+
+    let delta = normalizeRadians(
+        desiredNormalized - currentAngle
+    );
+
+    // Add six full turns, then align precisely to the target.
+    startAngle = angle;
+    targetAngle = angle + delta + 6 * Math.PI * 2;
+
+    startTime = performance.now();
+    duration = 4200;
+}
+
+function startSpin() {
+    if (spinning) return;
+
+    window.clearTimeout(resultTimer);
+    resultOverlay.classList.remove("visible");
+    resultOverlay.textContent = "";
+    wheelContainer.classList.add("zoomed-out");
+    spinning = true;
+    stopping = false;
+    if (soundEnabled) {
+        resumeAudio(startSpinMusic);
+    }
+
+    requestAnimationFrame(animateSpin);
+}
+
+soundButton.addEventListener("click", toggleSound);
+
+const wheelObserver = new ResizeObserver(resizeWheel);
+wheelObserver.observe(canvas);
+window.addEventListener("resize", resizeWheel);
+
+document.addEventListener("keydown", event => {
+    if (event.ctrlKey || event.altKey || event.metaKey ||
+        event.repeat) return;
+
+    if (event.key === "Escape") {
+        window.clearTimeout(resultTimer);
+        resultOverlay.classList.remove("visible");
+        resultOverlay.textContent = "";
+        return;
+    }
+
+    const active = document.activeElement;
+
+    if (active && (
+        active.tagName === "INPUT" ||
+        active.tagName === "TEXTAREA" ||
+        active.isContentEditable
+    )) return;
+
+    if (event.key.toLowerCase() === "m") {
+        toggleSound();
+    } else if (event.key.toLowerCase() === "s" || event.code === "Space") {
+        event.preventDefault();
+        startSpin();
+    } else if (event.key >= "1" && event.key <= "9") {
+        selectNumber(Number(event.key));
+    } else if (event.key === "0") {
+        selectNumber(10);
+    }
+});
+
+resizeWheel();
+</script>
+</body>
+</html>
